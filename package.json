@@ -19,11 +19,10 @@
     "jspack": "0.0.4",
     "lodash": "~ 2.4",
     "parse-engine-data": "~ 0.1",
-    "pngjs": "^0.4.0"
+    "pngjs": "3.2.0"
   },
   "scripts": {
     "test": "mocha test",
-    "docs": "node_modules/docco-husky/bin/generate lib shims",
     "build": "webpack",
     "dev": "webpack --progress --watch"
   },
@@ -33,7 +32,6 @@
     "babel-plugin-syntax-dynamic-import": "^6.18.0",
     "babel-plugin-transform-class-properties": "^6.24.1",
     "babel-preset-env": "^1.6.0",
-    "docco-husky": "*",
     "mocha": "~ 1.18.2",
     "rimraf": "~ 2.2.8",
     "serve": "^6.0.5",
