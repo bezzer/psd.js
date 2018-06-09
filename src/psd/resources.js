@@ -8,14 +8,17 @@ export default class Resources {
     this.length = null;
   }
 
-  skip() {
-    this.length = this.file.readInt();
-    this.file.seek(this.length, true);
+  async skip() {
+    this.file.seek(this.file.readInt(), true);
+    await this.file.readChunk(4);
   }
 
-  parse() {
+  async parse() {
     this.length = this.file.readInt();
-    console.log(`Resources length: ${this.length}`)
+
+    // Read the next int so the next parse method can know it's own length
+    await this.file.readChunk(this.length + 4);
+
     const finish = this.length + this.file.tell();
 
     while (this.file.tell() < finish) {

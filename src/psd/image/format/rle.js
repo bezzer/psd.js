@@ -1,6 +1,6 @@
-function parseRLE(image) {
+async function parseRLE(image) {
   const rle = new RLECompression(image);
-  rle.parse();
+  return rle.parse();
 }
 
 class RLECompression {
@@ -12,39 +12,46 @@ class RLECompression {
     this.image = image;
   }
 
-  parse() {
-    this._parseByteCounts();
-    this._parseChannelData();
+  async parse() {
+    await this._parseByteCounts();
+    await this._parseChannelData();
   }
 
-  _parseByteCounts() {
+  async _parseByteCounts() {
     const { image } = this;
     const { file } = image;
     const channelRows = image.header.channels * image.header.height;
     let byteCounts = [];
 
+    await file.readChunk(channelRows * 2);
+
     for (var i = 0; i < channelRows; i++) {
       byteCounts.push(file.readShort());
     }
-
     this.byteCounts = byteCounts;
   }
 
-  _parseChannelData() {
+  async _parseChannelData() {
     const channels = this.image.header.channels;
     const height = this.image.header.height;
 
     for (var i = 0; i < channels; i++) {
-      this._decodeRLEChannel();
-      this.lineIndex += height;
-    }
+      await this._decodeRLEChannel(i);
+    };
   }
 
-  _decodeRLEChannel() {
+  async _decodeRLEChannel(index) {
     const { image } = this;
     const { file } = image;
     const height = image.header.height;
     let byteCount, finish, len, val;
+
+    let bytesToRead = 0;
+    for (var k = 0; k < height; k++) {
+      bytesToRead += this.byteCounts[this.lineIndex + k];
+    }
+
+    await file.readChunk(bytesToRead);
 
     for (var j = 0; j < height; j++) {
       byteCount = this.byteCounts[this.lineIndex + j];
@@ -69,6 +76,8 @@ class RLECompression {
         }
       }
     }
+
+    this.lineIndex += this.image.header.height;
   }
 }
 

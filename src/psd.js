@@ -1,3 +1,5 @@
+import fs from 'fs-extra';
+
 import File from './psd/file'
 import LazyExecute from './psd/lazy_execute'
 import Header from './psd/header'
@@ -8,19 +10,24 @@ import Image from './psd/image'
 import Root from './psd/nodes/root'
 
 class PSD {
-  constructor(data) {
-    this.file = new File(data);
+  constructor(filePath) {
+    this.filePath = filePath;
     this.parsed = false;
     this.header = null;
   }
 
-  parse() {
+  async getFileDescriptor() {
+    const fd = await fs.open(this.filePath, 'r');
+    this.file = new File(fd);
+  }
+
+  async parse() {
     if (this.parsed) return;
 
-    this._parseHeader();
-    this._parseResources();
-    this._parseLayerMask();
-    this._parseImage();
+    await this._parseHeader();
+    await this._parseResources();
+    await this._parseLayerMask();
+    await this._parseImage();
 
     this.parsed = true;
   }
@@ -29,33 +36,28 @@ class PSD {
     return new Root(this);
   }
 
-  _parseHeader() {
+  async _parseHeader() {
     this.header = new Header(this.file);
-    this.header.parse();
+    await this.header.parse();
+    // Remove the file reference
+    this.header.file = undefined;
   }
 
-  _parseResources() {
-    const resources = new Resources(this.file);
-    this.resources = new LazyExecute(resources, this.file)
-      .now('skip')
-      .later('parse')
-      .get();
+  async _parseResources() {
+    this.resources = new Resources(this.file);
+    await this.resources.skip();
+    // Remove the file reference
+    this.resources.file = undefined;
   }
 
-  _parseLayerMask() {
-    const layerMask = new LayerMask(this.file, this.header);
-    this.layerMask = new LazyExecute(layerMask, this.file)
-      .now('skip')
-      .later('parse')
-      .get();
+  async _parseLayerMask() {
+    this.layerMask = new LayerMask(this.file, this.header);
+    await this.layerMask.skip();
   }
 
-  _parseImage() {
-    const image = new Image(this.file, this.header);
-    this.image = new LazyExecute(image, this.file)
-      .later('parse')
-      .ignore('width', 'height')
-      .get();
+  async _parseImage() {
+    this.image = new Image(this.file, this.header);
+    return this.image.parse();
   }
 }
 

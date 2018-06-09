@@ -11,13 +11,17 @@ export default class LayerMask {
     this.header = header;
   }
 
-  skip() {
+  async skip() {
     this.file.seek(this.file.readInt(), true);
+    await this.file.readChunk(4);
   }
 
-  parse() {
+  async parse() {
     const maskSize = this.file.readInt();
     const finish = maskSize + this.file.tell();
+
+    // Read the next int so the next parse method can know it's own length
+    await this.file.readChunk(maskSize + 4);
 
     if (maskSize <= 0) return;
 

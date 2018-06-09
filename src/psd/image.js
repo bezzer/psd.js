@@ -28,21 +28,25 @@ export default class Image {
     if (this.header.depth === 16) this.numPixels *= 2;
   }
 
-  parse() {
+  async parse() {
     this._calculateLength();
     this._setChannelsInfo();
 
     this.startPos = this.file.tell();
     this.endPos = this.startPos + this.length;
 
+    // We should already have the compression data, so don't need to read
+    // further into the file.
     this.compression = this._parseCompression();
     if ([2, 3].includes(this.compression)) {
       this.file.seek(endPos);
       return;
     }
 
-    this._parseImageData();
+    await this._parseImageData();
+    console.log('Processing image');
     this._processImageData();
+    console.log('Processing image done');
   }
 
   _calculateLength() {
@@ -70,7 +74,7 @@ export default class Image {
     return this.file.readShort();
   }
 
-  _parseImageData() {
+  async _parseImageData() {
     switch (this.compression) {
       case 0: return parseRaw(this);
       case 1: return parseRLE(this);

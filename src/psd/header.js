@@ -18,6 +18,9 @@ export default class Header {
     'Duotone16'
   ];
 
+  // Read enough to parse the header
+  static CHUNK_SIZE = 10000;
+
   // The signature of the PSD. Should be 8BPS.
   sig = null;
 
@@ -43,8 +46,10 @@ export default class Header {
     this.file = file;
   }
 
-  parse() {
+  async parse() {
     const { file } = this;
+
+    await file.readChunk(Header.CHUNK_SIZE);
 
     this.sig = file.readString(4);
     this._validateSignature();
