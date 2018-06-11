@@ -2,12 +2,13 @@ import fs from 'fs';
 import path from 'path';
 import stream from 'stream';
 import profiler from 'v8-profiler';
+import quicklook from '../quicklook';
 
 import PSD from '../src/psd';
 import File from '../src/psd/file';
 import { PNG } from '../src/node';
 
-const testFile = path.join(__dirname, 'assets', '5mb.psd');
+const testFile = path.join(__dirname, 'assets', '260mb.psd');
 const profileFile = path.join(__dirname, `profile.${Date.now()}.cpuprofile`);
 const snapshotFile = path.join(__dirname, `profile.${Date.now()}.heapsnapshot`);
 
@@ -20,9 +21,15 @@ async function run(filePath) {
 
   await design.getFileDescriptor();
 
-  await design.parse();
+  await design._parseHeader();
 
-  return PNG.saveAsPng(design.image, path.join(__dirname, `test.${Date.now()}.png`));
+  return quicklook(testFile, {
+    size: design.header.height,
+    scale: 2,
+    output: path.join(__dirname),
+  });
+
+  // return PNG.saveAsPng(design.image, path.join(__dirname, `test.${Date.now()}.png`));
 }
 
 (async () => {
