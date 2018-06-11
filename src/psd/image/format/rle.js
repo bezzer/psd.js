@@ -1,3 +1,7 @@
+import fs from 'fs-extra';
+import path from 'path';
+import profiler from 'v8-profiler';
+
 async function parseRLE(image) {
   const rle = new RLECompression(image);
   return rle.parse();
@@ -35,8 +39,17 @@ class RLECompression {
     const channels = this.image.header.channels;
     const height = this.image.header.height;
 
+    const decodePromises = [];
+
     for (var i = 0; i < channels; i++) {
-      await this._decodeRLEChannel(i);
+      const snapshot = profiler.takeSnapshot();
+
+      await this._decodeRLEChannel(i)
+
+      snapshot.export(async (error, result) => {
+        await fs.writeFile(path.join(process.cwd(), 'test', `profile.${Date.now()}.heapsnapshot`), result);
+        snapshot.delete();
+      });
     };
   }
 
@@ -47,13 +60,15 @@ class RLECompression {
     let byteCount, finish, len, val;
 
     let bytesToRead = 0;
-    for (var k = 0; k < height; k++) {
+    let k = 0;
+    for(; k < height; k++) {
       bytesToRead += this.byteCounts[this.lineIndex + k];
     }
 
     await file.readChunk(bytesToRead);
 
-    for (var j = 0; j < height; j++) {
+    let j = 0;
+    for(; j < height; j++) {
       byteCount = this.byteCounts[this.lineIndex + j];
       finish = file.tell() + byteCount;
 

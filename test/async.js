@@ -1,54 +1,55 @@
 import fs from 'fs';
 import path from 'path';
 import stream from 'stream';
-import memwatch from 'memwatch-next';
-import sizeof from 'object-sizeof';
+import profiler from 'v8-profiler';
 
 import PSD from '../src/psd';
 import File from '../src/psd/file';
 import { PNG } from '../src/node';
 
-let hd = new memwatch.HeapDiff();
 const testFile = path.join(__dirname, 'assets', '5mb.psd');
+const profileFile = path.join(__dirname, `profile.${Date.now()}.cpuprofile`);
+const snapshotFile = path.join(__dirname, `profile.${Date.now()}.heapsnapshot`);
 
 const delay = t => new Promise(res => setTimeout(res, t));
 
-const logHeap = (step, startAgain = true) => {
-  const diff = hd.end();
-  console.log(`${step} - Before: ${diff.before.size} After ${diff.after.size}`);
-
-  if (startAgain) {
-    hd = new memwatch.HeapDiff();
-  }
-}
-
 async function run(filePath) {
+  profiler.startProfiling('1', true);
+
   const design = new PSD(filePath);
-  logHeap('HAS FILE');
+
   await design.getFileDescriptor();
+
   await design.parse();
 
-  // NOTE: this take a while to calculate
-  // console.log(sizeof(design.image.pixelData));
-
-  logHeap('PARSED FILE');
-  // console.log(design);
   return PNG.saveAsPng(design.image, path.join(__dirname, `test.${Date.now()}.png`));
 }
 
 (async () => {
   try {
+    profiler.startProfiling('1', true);
+
     await run(testFile);
-    logHeap('SAVED FILE');
+
+    const profile = profiler.stopProfiling();
+    // const snapshot = profiler.takeSnapshot();
+
+    profile.export(async (error, result) => {
+      await fs.writeFile(profileFile, result);
+      profile.delete();
+    });
+
+    // snapshot.export(async (error, result) => {
+    //   await fs.writeFile(snapshotFile, result);
+    //   snapshot.delete();
+    // });
 
     await delay(2000)
 
     if (global.gc) {
       global.gc();
-      console.log('COLLECTED');
     }
 
-    logHeap('DONE', false);
   } catch (e) {
     console.error(e);
   }

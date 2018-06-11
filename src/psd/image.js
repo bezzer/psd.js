@@ -1,3 +1,4 @@
+import { Readable } from 'stream';
 import { setRgbChannels, combineRgbChannel } from './image/mode/rgb'
 import { setCmykChannels, combineCmykChannel } from './image/mode/cmyk'
 import { setGreyscaleChannels, combineGreyscaleChannel } from './image/mode/greyscale'
@@ -13,7 +14,7 @@ export default class Image {
     'ZIPPrediction'
   ];
 
-  pixelData = [];
+  pixelData = new Readable();
   channelData = [];
   opacity = 1.0;
   hasMask = false;
@@ -44,9 +45,10 @@ export default class Image {
     }
 
     await this._parseImageData();
-    console.log('Processing image');
+  }
+
+  startStream() {
     this._processImageData();
-    console.log('Processing image done');
   }
 
   _calculateLength() {

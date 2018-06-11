@@ -17,10 +17,15 @@ function combineRgbChannel(image) {
 
   let r = 0, g = 0, b = 0, a;
   let index, val;
-  for (var i = 0; i < image.numPixels; i++) {
+
+  let i = 0;
+  const iMax = image.numPixels;
+  for(; i < iMax; i++) {
     a = 255;
 
-    for (index = 0; index < rgbChannels.length; index++) {
+    let index = 0;
+    const indexMax = rgbChannels.length;
+    for(; index < indexMax; index++) {
       val = image.channelData[i + (image.channelLength * index)];
 
       switch (rgbChannels[index]) {
@@ -31,8 +36,10 @@ function combineRgbChannel(image) {
       }
     }
 
-    image.pixelData.push(r, g, b, a);
+    image.pixelData.push(Buffer.from([r, g, b, a]));
   }
+
+  image.pixelData.push(null);
 }
 
 export {

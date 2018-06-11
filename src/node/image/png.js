@@ -1,28 +1,26 @@
-import fs from 'fs'
-import { PNG } from 'pngjs'
-
-function imageToPng(image) {
-  const png = new PNG({
-    filterType: 4,
-    width: image.width,
-    height: image.height
-  });
-
-  png.data = image.pixelData;
-  return png;
-}
+import fs from 'fs-extra';
+import sharp from 'sharp';
 
 function saveAsPng(image, path) {
+  const transformer = sharp(null, {
+    raw: {
+      width: image.width,
+      height: image.height,
+      channels: 4,
+    }
+  }).toFormat('png');
+
+  const writableStream = fs.createWriteStream(path);
+
+  image.startStream();
+
   return new Promise((resolve, reject) => {
-    imageToPng(image)
-      .pack()
-      .pipe(fs.createWriteStream(path))
+    image.pixelData
+      .pipe(transformer)
+      .pipe(writableStream)
       .on('error', reject)
       .on('finish', resolve);
-  })
+  });
 }
 
-export {
-  imageToPng,
-  saveAsPng
-}
+export { saveAsPng };
