@@ -4,8 +4,7 @@ import stream from 'stream';
 import profiler from 'v8-profiler';
 import sharp from 'sharp';
 
-import PSD from '../src/psd';
-import { getArtboardDetails } from '../src/psd/artboards';
+import PSD, { getArtboardDetails } from '../src/psd';
 
 import quicklook from './quicklook';
 
@@ -15,10 +14,12 @@ const snapshotFile = path.join(__dirname, `profile.${Date.now()}.heapsnapshot`);
 
 const delay = t => new Promise(res => setTimeout(res, t));
 
-async function cropArtboard(sharpImage, artboard, output) {
+function cropArtboard(sharpImage, artboard, output) {
   return new Promise((resolve, reject) => {
     const { width, height, top, left } = artboard;
-    sharpImage.extract({ left, top, width, height }).toFile(output, err => {
+    sharpImage.extract({ left, top, width, height }).png({
+      adaptiveFiltering: true,
+    }).toFile(output, err => {
       if (err) {
         console.log('ER', err);
         return reject(err);
@@ -38,7 +39,7 @@ async function run(filePath) {
   await design.parse();
 
   const artboards = getArtboardDetails(design);
-
+  console.log(artboards);
   const TEMP_FILE = 'design@1x.png';
 
   const output = path.join(__dirname, 'previews');
@@ -58,10 +59,12 @@ async function run(filePath) {
         cropArtboard(
           sharpImage,
           artboard,
-          path.join(output, `${artboard.name}@1x.png`)
+          path.join(output, `${artboard.id}@1x.png`)
         )
       )
     );
+
+    await fs.remove(designImage);
   }
 }
 
