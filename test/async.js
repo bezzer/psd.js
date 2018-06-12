@@ -1,35 +1,68 @@
-import fs from 'fs';
+import fs from 'fs-extra';
 import path from 'path';
 import stream from 'stream';
 import profiler from 'v8-profiler';
-import quicklook from '../quicklook';
+import sharp from 'sharp';
 
 import PSD from '../src/psd';
-import File from '../src/psd/file';
-import { PNG } from '../src/node';
+import { getArtboardDetails } from '../src/psd/artboards';
 
-const testFile = path.join(__dirname, 'assets', '260mb.psd');
+import quicklook from './quicklook';
+
+const testFile = path.join(__dirname, 'assets', '5mb.psd');
 const profileFile = path.join(__dirname, `profile.${Date.now()}.cpuprofile`);
 const snapshotFile = path.join(__dirname, `profile.${Date.now()}.heapsnapshot`);
 
 const delay = t => new Promise(res => setTimeout(res, t));
 
+async function cropArtboard(sharpImage, artboard, output) {
+  return new Promise((resolve, reject) => {
+    const { width, height, top, left } = artboard;
+    sharpImage.extract({ left, top, width, height }).toFile(output, err => {
+      if (err) {
+        console.log('ER', err);
+        return reject(err);
+      }
+    });
+
+    resolve();
+  });
+}
+
 async function run(filePath) {
   profiler.startProfiling('1', true);
 
-  const design = new PSD(filePath);
+  const fd = await fs.open(filePath, 'r');
+  const design = new PSD(fd);
 
-  await design.getFileDescriptor();
+  await design.parse();
 
-  await design._parseHeader();
+  const artboards = getArtboardDetails(design);
 
-  return quicklook(testFile, {
-    size: design.header.height,
-    scale: 2,
-    output: path.join(__dirname),
+  const TEMP_FILE = 'design@1x.png';
+
+  const output = path.join(__dirname, 'previews');
+
+  await quicklook(testFile, {
+    size: Math.max(design.header.width, design.header.height),
+    output,
+    rename: TEMP_FILE
   });
 
-  // return PNG.saveAsPng(design.image, path.join(__dirname, `test.${Date.now()}.png`));
+  if (artboards.length) {
+    const designImage = path.join(output, TEMP_FILE);
+    const sharpImage = sharp(designImage);
+
+    await Promise.all(
+      artboards.map(artboard =>
+        cropArtboard(
+          sharpImage,
+          artboard,
+          path.join(output, `${artboard.name}@1x.png`)
+        )
+      )
+    );
+  }
 }
 
 (async () => {
@@ -38,25 +71,24 @@ async function run(filePath) {
 
     await run(testFile);
 
-    const profile = profiler.stopProfiling();
+    // const profile = profiler.stopProfiling();
     // const snapshot = profiler.takeSnapshot();
 
-    profile.export(async (error, result) => {
-      await fs.writeFile(profileFile, result);
-      profile.delete();
-    });
+    // profile.export(async (error, result) => {
+    //   await fs.writeFile(profileFile, result);
+    //   profile.delete();
+    // });
 
     // snapshot.export(async (error, result) => {
     //   await fs.writeFile(snapshotFile, result);
     //   snapshot.delete();
     // });
 
-    await delay(2000)
+    await delay(2000);
 
     if (global.gc) {
       global.gc();
     }
-
   } catch (e) {
     console.error(e);
   }

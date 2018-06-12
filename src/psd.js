@@ -1,5 +1,3 @@
-import fs from 'fs-extra';
-
 import File from './psd/file'
 import LazyExecute from './psd/lazy_execute'
 import Header from './psd/header'
@@ -10,24 +8,19 @@ import Image from './psd/image'
 import Root from './psd/nodes/root'
 
 class PSD {
-  constructor(filePath) {
-    this.filePath = filePath;
+  constructor(fd, options) {
+    this.file = new File(fd);
     this.parsed = false;
     this.header = null;
-  }
-
-  async getFileDescriptor() {
-    const fd = await fs.open(this.filePath, 'r');
-    this.file = new File(fd);
+    this.options = options;
   }
 
   async parse() {
     if (this.parsed) return;
 
-    await this._parseHeader();
-    await this._parseResources();
-    await this._parseLayerMask();
-    await this._parseImage();
+    await this.parseHeader();
+    await this.parseResources();
+    await this.parseLayerMask();
 
     this.parsed = true;
   }
@@ -36,26 +29,22 @@ class PSD {
     return new Root(this);
   }
 
-  async _parseHeader() {
+  async parseHeader() {
     this.header = new Header(this.file);
     await this.header.parse();
-    // Remove the file reference
-    this.header.file = undefined;
   }
 
-  async _parseResources() {
+  async parseResources() {
     this.resources = new Resources(this.file);
     await this.resources.skip();
-    // Remove the file reference
-    this.resources.file = undefined;
   }
 
-  async _parseLayerMask() {
+  async parseLayerMask() {
     this.layerMask = new LayerMask(this.file, this.header);
-    await this.layerMask.skip();
+    await this.layerMask.parse();
   }
 
-  async _parseImage() {
+  async parseImage() {
     this.image = new Image(this.file, this.header);
     return this.image.parse();
   }
