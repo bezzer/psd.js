@@ -2,11 +2,10 @@ var path = require('path');
 var merge = require('webpack-merge');
 
 const sharedConfig = {
-  devtool: 'cheap-eval-source-map',
+  devtool: 'source-map',
   stats: {
     errorDetails: true
   },
-
   output: {
     pathinfo: true
   },
@@ -19,33 +18,12 @@ const sharedConfig = {
 
 const coreConfig = merge(sharedConfig, {
   entry: './src/psd.js',
+  target: 'node',
   output: {
     filename: "psd.js",
     path: path.resolve(__dirname, 'dist'),
-    library: 'PSD',
-    libraryTarget: 'umd'
+    libraryTarget: 'commonjs2'
   }
 });
 
-const browserConfig = merge(sharedConfig, {
-  entry: './src/browser/index.js',
-  output: {
-    filename: 'psd-browser.js',
-    path: path.resolve(__dirname, 'dist'),
-    library: 'PSDTools',
-    libraryTarget: 'umd'
-  }
-});
-
-const nodeConfig = merge(sharedConfig, {
-  target: 'node',
-  entry: './src/node/index.js',
-  output: {
-    filename: "psd-node.js",
-    path: path.resolve(__dirname, 'dist'),
-    library: 'PSDTools',
-    libraryTarget: 'umd'
-  }
-});
-
-module.exports = [coreConfig, browserConfig, nodeConfig]
+module.exports = [coreConfig]

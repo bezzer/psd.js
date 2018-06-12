@@ -1,6 +1,5 @@
 import fs from 'fs-extra';
 import path from 'path';
-import profiler from 'v8-profiler';
 
 async function parseRLE(image) {
   const rle = new RLECompression(image);
@@ -42,14 +41,7 @@ class RLECompression {
     const decodePromises = [];
 
     for (var i = 0; i < channels; i++) {
-      const snapshot = profiler.takeSnapshot();
-
       await this._decodeRLEChannel(i)
-
-      snapshot.export(async (error, result) => {
-        await fs.writeFile(path.join(process.cwd(), 'test', `profile.${Date.now()}.heapsnapshot`), result);
-        snapshot.delete();
-      });
     };
   }
 

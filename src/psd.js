@@ -7,7 +7,10 @@ import Image from './psd/image'
 
 import Root from './psd/nodes/root'
 
-class PSD {
+import { getArtboardDetails } from './psd/artboards';
+export { getArtboardDetails };
+
+export default class PSD {
   constructor(fd, options) {
     this.file = new File(fd);
     this.parsed = false;
@@ -48,6 +51,4 @@ class PSD {
     this.image = new Image(this.file, this.header);
     return this.image.parse();
   }
-}
-
-export default PSD
+};
