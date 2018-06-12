@@ -4,6 +4,7 @@ import LazyExecute from '../lazy_execute'
 import Artboard from './info/artboard'
 import BlendClippingElements from './info/blend_clipping_elements'
 import BlendInteriorElements from './info/blend_interior_elements'
+import LayerId from './info/layer_id'
 import NestedSectionDivider from './info/nested_section_divider'
 import SectionDivider from './info/section_divider'
 import TypeTool from './info/typetool'
@@ -13,6 +14,7 @@ const LAYER_INFO = [
   Artboard,
   BlendClippingElements,
   BlendInteriorElements,
+  LayerId,
   NestedSectionDivider,
   SectionDivider,
   TypeTool,

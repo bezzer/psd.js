@@ -4,6 +4,7 @@ export function getArtboardDetails(psd) {
     .children()
     .filter(layer => Boolean(layer.layer.adjustments.artboard))
     .map(artboard => {
+      const id = artboard.layer.adjustments.layerId.id;
       const name = artboard.layer.adjustments.name.data;
       const { artboardRect } = artboard.layer.adjustments.artboard.data;
       const left =  artboardRect.Left;
@@ -14,6 +15,6 @@ export function getArtboardDetails(psd) {
       const width = right - left;
       const height = bottom - top;
 
-      return { name, width, height, top, left };
+      return { id, name, width, height, top, left };
     });
 }
