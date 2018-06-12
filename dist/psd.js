@@ -1095,7 +1095,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _lodash = __webpack_require__(/*! lodash */ 104);
+var _lodash = __webpack_require__(/*! lodash */ 105);
 
 var _lodash2 = _interopRequireDefault(_lodash);
 
@@ -2011,15 +2011,15 @@ var _layer_mask = __webpack_require__(/*! ./psd/layer_mask */ 77);
 
 var _layer_mask2 = _interopRequireDefault(_layer_mask);
 
-var _image = __webpack_require__(/*! ./psd/image */ 96);
+var _image = __webpack_require__(/*! ./psd/image */ 97);
 
 var _image2 = _interopRequireDefault(_image);
 
-var _root = __webpack_require__(/*! ./psd/nodes/root */ 103);
+var _root = __webpack_require__(/*! ./psd/nodes/root */ 104);
 
 var _root2 = _interopRequireDefault(_root);
 
-var _artboards = __webpack_require__(/*! ./psd/artboards */ 108);
+var _artboards = __webpack_require__(/*! ./psd/artboards */ 109);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -9182,25 +9182,29 @@ var _blend_interior_elements = __webpack_require__(/*! ./info/blend_interior_ele
 
 var _blend_interior_elements2 = _interopRequireDefault(_blend_interior_elements);
 
-var _nested_section_divider = __webpack_require__(/*! ./info/nested_section_divider */ 91);
+var _layer_id = __webpack_require__(/*! ./info/layer_id */ 91);
+
+var _layer_id2 = _interopRequireDefault(_layer_id);
+
+var _nested_section_divider = __webpack_require__(/*! ./info/nested_section_divider */ 92);
 
 var _nested_section_divider2 = _interopRequireDefault(_nested_section_divider);
 
-var _section_divider = __webpack_require__(/*! ./info/section_divider */ 92);
+var _section_divider = __webpack_require__(/*! ./info/section_divider */ 93);
 
 var _section_divider2 = _interopRequireDefault(_section_divider);
 
-var _typetool = __webpack_require__(/*! ./info/typetool */ 93);
+var _typetool = __webpack_require__(/*! ./info/typetool */ 94);
 
 var _typetool2 = _interopRequireDefault(_typetool);
 
-var _unicode_name = __webpack_require__(/*! ./info/unicode_name */ 95);
+var _unicode_name = __webpack_require__(/*! ./info/unicode_name */ 96);
 
 var _unicode_name2 = _interopRequireDefault(_unicode_name);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var LAYER_INFO = [_artboard2.default, _blend_clipping_elements2.default, _blend_interior_elements2.default, _nested_section_divider2.default, _section_divider2.default, _typetool2.default, _unicode_name2.default];
+var LAYER_INFO = [_artboard2.default, _blend_clipping_elements2.default, _blend_interior_elements2.default, _layer_id2.default, _nested_section_divider2.default, _section_divider2.default, _typetool2.default, _unicode_name2.default];
 
 function parseLayerInfo(layer) {
   var file = layer.file;
@@ -9445,6 +9449,67 @@ exports.default = BlendInteriorElements;
 
 /***/ }),
 /* 91 */
+/*!****************************************!*\
+  !*** ./src/psd/layer/info/layer_id.js ***!
+  \****************************************/
+/*! dynamic exports provided */
+/*! all exports used */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _base = __webpack_require__(/*! ./base */ 6);
+
+var _base2 = _interopRequireDefault(_base);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var LayerId = function (_LayerInfo) {
+  _inherits(LayerId, _LayerInfo);
+
+  function LayerId() {
+    _classCallCheck(this, LayerId);
+
+    return _possibleConstructorReturn(this, (LayerId.__proto__ || Object.getPrototypeOf(LayerId)).apply(this, arguments));
+  }
+
+  _createClass(LayerId, [{
+    key: 'parse',
+    value: function parse() {
+      this.id = this.file.readInt();
+    }
+  }], [{
+    key: 'shouldParse',
+    value: function shouldParse(key) {
+      return key === 'lyid';
+    }
+  }]);
+
+  return LayerId;
+}(_base2.default);
+
+Object.defineProperty(LayerId, 'name', {
+  enumerable: true,
+  writable: true,
+  value: 'layerId'
+});
+exports.default = LayerId;
+
+/***/ }),
+/* 92 */
 /*!******************************************************!*\
   !*** ./src/psd/layer/info/nested_section_divider.js ***!
   \******************************************************/
@@ -9531,7 +9596,7 @@ Object.defineProperty(NestedSectionDivider, "name", {
 exports.default = NestedSectionDivider;
 
 /***/ }),
-/* 92 */
+/* 93 */
 /*!***********************************************!*\
   !*** ./src/psd/layer/info/section_divider.js ***!
   \***********************************************/
@@ -9642,7 +9707,7 @@ Object.defineProperty(SectionDivider, 'name', {
 exports.default = SectionDivider;
 
 /***/ }),
-/* 93 */
+/* 94 */
 /*!****************************************!*\
   !*** ./src/psd/layer/info/typetool.js ***!
   \****************************************/
@@ -9659,7 +9724,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _parseEngineData = __webpack_require__(/*! parse-engine-data */ 94);
+var _parseEngineData = __webpack_require__(/*! parse-engine-data */ 95);
 
 var _parseEngineData2 = _interopRequireDefault(_parseEngineData);
 
@@ -9937,7 +10002,7 @@ Object.defineProperty(TypeTool, 'name', {
 exports.default = TypeTool;
 
 /***/ }),
-/* 94 */
+/* 95 */
 /*!***************************************************************!*\
   !*** ./node_modules/parse-engine-data/lib/parseEngineData.js ***!
   \***************************************************************/
@@ -10151,7 +10216,7 @@ function pushKeyValue(key,value){
 module.exports = paresr;
 
 /***/ }),
-/* 95 */
+/* 96 */
 /*!********************************************!*\
   !*** ./src/psd/layer/info/unicode_name.js ***!
   \********************************************/
@@ -10215,7 +10280,7 @@ Object.defineProperty(UnicodeName, 'name', {
 exports.default = UnicodeName;
 
 /***/ }),
-/* 96 */
+/* 97 */
 /*!**************************!*\
   !*** ./src/psd/image.js ***!
   \**************************/
@@ -10234,15 +10299,15 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _stream = __webpack_require__(/*! stream */ 7);
 
-var _rgb = __webpack_require__(/*! ./image/mode/rgb */ 97);
+var _rgb = __webpack_require__(/*! ./image/mode/rgb */ 98);
 
-var _cmyk = __webpack_require__(/*! ./image/mode/cmyk */ 98);
+var _cmyk = __webpack_require__(/*! ./image/mode/cmyk */ 99);
 
-var _greyscale = __webpack_require__(/*! ./image/mode/greyscale */ 100);
+var _greyscale = __webpack_require__(/*! ./image/mode/greyscale */ 101);
 
-var _raw = __webpack_require__(/*! ./image/format/raw */ 101);
+var _raw = __webpack_require__(/*! ./image/format/raw */ 102);
 
-var _rle = __webpack_require__(/*! ./image/format/rle */ 102);
+var _rle = __webpack_require__(/*! ./image/format/rle */ 103);
 
 function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
 
@@ -10428,7 +10493,7 @@ Object.defineProperty(Image, 'COMPRESSIONS', {
 exports.default = Image;
 
 /***/ }),
-/* 97 */
+/* 98 */
 /*!***********************************!*\
   !*** ./src/psd/image/mode/rgb.js ***!
   \***********************************/
@@ -10496,7 +10561,7 @@ exports.setRgbChannels = setRgbChannels;
 exports.combineRgbChannel = combineRgbChannel;
 
 /***/ }),
-/* 98 */
+/* 99 */
 /*!************************************!*\
   !*** ./src/psd/image/mode/cmyk.js ***!
   \************************************/
@@ -10514,7 +10579,7 @@ exports.combineCmykChannel = exports.setCmykChannels = undefined;
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-var _color = __webpack_require__(/*! ../../color */ 99);
+var _color = __webpack_require__(/*! ../../color */ 100);
 
 function setCmykChannels(image) {
   image.channelsInfo = [{ id: 0 }, { id: 1 }, { id: 2 }, { id: 3 }];
@@ -10572,7 +10637,7 @@ exports.setCmykChannels = setCmykChannels;
 exports.combineCmykChannel = combineCmykChannel;
 
 /***/ }),
-/* 99 */
+/* 100 */
 /*!**************************!*\
   !*** ./src/psd/color.js ***!
   \**************************/
@@ -10600,7 +10665,7 @@ function cmykToRgb(c, m, y, k) {
 exports.cmykToRgb = cmykToRgb;
 
 /***/ }),
-/* 100 */
+/* 101 */
 /*!*****************************************!*\
   !*** ./src/psd/image/mode/greyscale.js ***!
   \*****************************************/
@@ -10641,7 +10706,7 @@ exports.setGreyscaleChannels = setGreyscaleChannels;
 exports.combineGreyscaleChannel = combineGreyscaleChannel;
 
 /***/ }),
-/* 101 */
+/* 102 */
 /*!*************************************!*\
   !*** ./src/psd/image/format/raw.js ***!
   \*************************************/
@@ -10662,7 +10727,7 @@ function parseRaw(image) {
 exports.parseRaw = parseRaw;
 
 /***/ }),
-/* 102 */
+/* 103 */
 /*!*************************************!*\
   !*** ./src/psd/image/format/rle.js ***!
   \*************************************/
@@ -10928,7 +10993,7 @@ var RLECompression = function () {
 exports.parseRLE = parseRLE;
 
 /***/ }),
-/* 103 */
+/* 104 */
 /*!*******************************!*\
   !*** ./src/psd/nodes/root.js ***!
   \*******************************/
@@ -10949,11 +11014,11 @@ var _node = __webpack_require__(/*! ../node */ 15);
 
 var _node2 = _interopRequireDefault(_node);
 
-var _group = __webpack_require__(/*! ./group */ 106);
+var _group = __webpack_require__(/*! ./group */ 107);
 
 var _group2 = _interopRequireDefault(_group);
 
-var _layer = __webpack_require__(/*! ./layer */ 107);
+var _layer = __webpack_require__(/*! ./layer */ 108);
 
 var _layer2 = _interopRequireDefault(_layer);
 
@@ -11051,7 +11116,7 @@ var Root = function (_Node) {
 exports.default = Root;
 
 /***/ }),
-/* 104 */
+/* 105 */
 /*!********************************************!*\
   !*** ./node_modules/lodash/dist/lodash.js ***!
   \********************************************/
@@ -17847,10 +17912,10 @@ exports.default = Root;
   }
 }.call(this));
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../webpack/buildin/module.js */ 105)(module)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ./../../webpack/buildin/module.js */ 106)(module)))
 
 /***/ }),
-/* 105 */
+/* 106 */
 /*!***********************************!*\
   !*** (webpack)/buildin/module.js ***!
   \***********************************/
@@ -17883,7 +17948,7 @@ module.exports = function(module) {
 
 
 /***/ }),
-/* 106 */
+/* 107 */
 /*!********************************!*\
   !*** ./src/psd/nodes/group.js ***!
   \********************************/
@@ -17955,7 +18020,7 @@ var Group = function (_Node) {
 exports.default = Group;
 
 /***/ }),
-/* 107 */
+/* 108 */
 /*!********************************!*\
   !*** ./src/psd/nodes/layer.js ***!
   \********************************/
@@ -18018,7 +18083,7 @@ var Layer = function (_Node) {
 exports.default = Layer;
 
 /***/ }),
-/* 108 */
+/* 109 */
 /*!******************************!*\
   !*** ./src/psd/artboards.js ***!
   \******************************/
@@ -18037,6 +18102,7 @@ function getArtboardDetails(psd) {
   return psd.tree().children().filter(function (layer) {
     return Boolean(layer.layer.adjustments.artboard);
   }).map(function (artboard) {
+    var id = artboard.layer.adjustments.layerId.id;
     var name = artboard.layer.adjustments.name.data;
     var artboardRect = artboard.layer.adjustments.artboard.data.artboardRect;
 
@@ -18048,7 +18114,7 @@ function getArtboardDetails(psd) {
     var width = right - left;
     var height = bottom - top;
 
-    return { name: name, width: width, height: height, top: top, left: left };
+    return { id: id, name: name, width: width, height: height, top: top, left: left };
   });
 }
 
