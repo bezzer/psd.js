@@ -1,7 +1,7 @@
 {
   "name": "psd",
   "description": "A general purpose Photoshop file parser.",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "main": "./dist/psd.js",
   "scripts": {
     "test": "mocha test",
