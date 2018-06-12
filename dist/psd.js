@@ -461,15 +461,8 @@ module.exports = {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var LayerInfo = function () {
-  function LayerInfo(layer, length) {
-    _classCallCheck(this, LayerInfo);
-
+class LayerInfo {
+  constructor(layer, length) {
     this.layer = layer;
     this.length = length;
     this.file = this.layer.file;
@@ -477,24 +470,15 @@ var LayerInfo = function () {
     this.data = null;
   }
 
-  _createClass(LayerInfo, [{
-    key: "skip",
-    value: function skip() {
-      this.file.seek(this.sectionEnd);
-    }
+  skip() {
+    this.file.seek(this.sectionEnd);
+  }
 
-    // Override this.
-
-  }, {
-    key: "parse",
-    value: function parse() {
-      this.skip();
-    }
-  }]);
-
-  return LayerInfo;
-}();
-
+  // Override this.
+  parse() {
+    this.skip();
+  }
+}
 exports.default = LayerInfo;
 
 /***/ }),
@@ -622,11 +606,6 @@ module.exports = {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 // LazyExecute is very important when it comes to speed. Because some PSD documents
 // can be extremely large and hold a LOT of data, we can significantly speed up
 // parsing by temporarily skipping over chunks of the PSD. Chances are that you aren't
@@ -652,10 +631,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 //   .ignore('foo', 'bar')
 //   .get()
 // ```
-var LazyExecute = function () {
-  function LazyExecute(obj, file) {
-    _classCallCheck(this, LazyExecute);
-
+class LazyExecute {
+  constructor(obj, file) {
     this.obj = obj;
     this.file = file;
     this.startPos = file.tell();
@@ -668,102 +645,69 @@ var LazyExecute = function () {
   // This describes the method that we want to run at object instantiation. Typically this
   // will skip over the data that we will parse on-demand later. We can pass any arguments
   // we want to the method as well.
+  now(method, ...args) {
+    this.obj[method].apply(this.obj, args);
+    return this;
+  }
 
+  // Here we describe the method we want to run when the first method/property on the object
+  // is accessed. We can also define any arguments that need to be passed to the function.
+  later(method, ...args) {
+    this.loadMethod = method;
+    this.loadArgs = args;
+    return this;
+  }
 
-  _createClass(LazyExecute, [{
-    key: "now",
-    value: function now(method) {
-      for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-        args[_key - 1] = arguments[_key];
-      }
+  // Sometimes we don't have to parse the data in order to get some important information.
+  // For example, we can get the widht/height from the full preview image without parsing the
+  // image itself, since that data comes from the header. Purely convenience, but helps to
+  // optimize usage.
+  //
+  // The arguments are a list of method/property names we don't want to trigger on-demand parsing.
+  ignore(...args) {
+    this.passthru = this.passthru.concat(args);
+    return this;
+  }
 
-      this.obj[method].apply(this.obj, args);
-      return this;
-    }
-
-    // Here we describe the method we want to run when the first method/property on the object
-    // is accessed. We can also define any arguments that need to be passed to the function.
-
-  }, {
-    key: "later",
-    value: function later(method) {
-      this.loadMethod = method;
-
-      for (var _len2 = arguments.length, args = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
-        args[_key2 - 1] = arguments[_key2];
-      }
-
-      this.loadArgs = args;
-      return this;
-    }
-
-    // Sometimes we don't have to parse the data in order to get some important information.
-    // For example, we can get the widht/height from the full preview image without parsing the
-    // image itself, since that data comes from the header. Purely convenience, but helps to
-    // optimize usage.
-    //
-    // The arguments are a list of method/property names we don't want to trigger on-demand parsing.
-
-  }, {
-    key: "ignore",
-    value: function ignore() {
-      for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
-        args[_key3] = arguments[_key3];
-      }
-
-      this.passthru = this.passthru.concat(args);
-      return this;
-    }
-  }, {
-    key: "get",
-    value: function get() {
-      var _this = this;
-
-      return new Proxy(this.obj, {
-        get: function get(target, name, receiver) {
-          if (!_this.loaded && !_this.passthru.includes(name)) {
-            // console.log(`LazyExecute: requesting ${target.constructor.name}#${name}. Loading!`);
-            _this.load();
-          }
-
-          return target[name];
-        },
-        apply: function apply(target, self, args) {
-          if (!_this.loaded && !_this.passthru.includes(name)) {
-            // console.log(`LazyExecute: requesting ${target.constructor.name}#${name}(). Loading!`);
-            _this.load();
-          }
-
-          target.apply(self, args);
+  get() {
+    return new Proxy(this.obj, {
+      get: (target, name, receiver) => {
+        if (!this.loaded && !this.passthru.includes(name)) {
+          // console.log(`LazyExecute: requesting ${target.constructor.name}#${name}. Loading!`);
+          this.load();
         }
-      });
-    }
 
-    // If we are accessing a property for the first time, then this will call the load method, which
-    // was defined during setup with `later()`. The steps this performs are:
-    //
-    // 1. Records the current file position.
-    // 2. Jumps to the recorded start position for the proxied data.
-    // 3. Calls the load method, which was defined with `later()`.
-    // 4. Jumps back to the original file position.
-    // 5. Sets the `@loaded` flag to true so we know this object has been parsed.
+        return target[name];
+      },
+      apply: (target, self, args) => {
+        if (!this.loaded && !this.passthru.includes(name)) {
+          // console.log(`LazyExecute: requesting ${target.constructor.name}#${name}(). Loading!`);
+          this.load();
+        }
 
-  }, {
-    key: "load",
-    value: function load() {
-      var origPos = this.file.tell();
-      this.file.seek(this.startPos);
+        target.apply(self, args);
+      }
+    });
+  }
 
-      this.obj[this.loadMethod].apply(this.obj, this.loadArgs);
+  // If we are accessing a property for the first time, then this will call the load method, which
+  // was defined during setup with `later()`. The steps this performs are:
+  //
+  // 1. Records the current file position.
+  // 2. Jumps to the recorded start position for the proxied data.
+  // 3. Calls the load method, which was defined with `later()`.
+  // 4. Jumps back to the original file position.
+  // 5. Sets the `@loaded` flag to true so we know this object has been parsed.
+  load() {
+    const origPos = this.file.tell();
+    this.file.seek(this.startPos);
 
-      this.file.seek(origPos);
-      this.loaded = true;
-    }
-  }]);
+    this.obj[this.loadMethod].apply(this.obj, this.loadArgs);
 
-  return LazyExecute;
-}();
-
+    this.file.seek(origPos);
+    this.loaded = true;
+  }
+}
 exports.default = LazyExecute;
 
 /***/ }),
@@ -781,300 +725,258 @@ exports.default = LazyExecute;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 // A descriptor is a block of data that describes a complex data structure of some kind.
 // It was added sometime around Photoshop 5.0 and it superceded a few legacy things such
 // as layer names and type data. The benefit of the Descriptor is that it is self-contained,
 // and allows us to dynamically define data of any size. It's always represented by an Object
 // at the root.
-var Descriptor = function () {
-  function Descriptor(file) {
-    _classCallCheck(this, Descriptor);
-
+class Descriptor {
+  constructor(file) {
     this.file = file;
     this.data = {};
   }
 
-  _createClass(Descriptor, [{
-    key: 'parse',
-    value: function parse() {
-      this.data.class = this.parseClass();
-      var numItems = this.file.readInt();
+  parse() {
+    this.data.class = this.parseClass();
+    const numItems = this.file.readInt();
 
-      for (var i = 0; i < numItems; i++) {
-        var _parseKeyItem = this.parseKeyItem(),
-            id = _parseKeyItem.id,
-            value = _parseKeyItem.value;
-
-        this.data[id] = value;
-      }
-
-      return this.data;
+    for (var i = 0; i < numItems; i++) {
+      const { id, value } = this.parseKeyItem();
+      this.data[id] = value;
     }
-  }, {
-    key: 'parseClass',
-    value: function parseClass() {
-      var name = this.file.readUnicodeString();
-      var id = this.parseId();
-      return { name: name, id: id };
-    }
-  }, {
-    key: 'parseId',
-    value: function parseId() {
-      var len = this.file.readInt();
-      return this.file.readString(len === 0 ? 4 : len);
-    }
-  }, {
-    key: 'parseKeyItem',
-    value: function parseKeyItem() {
-      var id = this.parseId();
-      var value = this.parseItem();
-      return { id: id, value: value };
-    }
-  }, {
-    key: 'parseItem',
-    value: function parseItem() {
-      var type = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
 
-      if (!type) type = this.file.readString(4);
+    return this.data;
+  }
 
+  parseClass() {
+    const name = this.file.readUnicodeString();
+    const id = this.parseId();
+    return { name, id };
+  }
+
+  parseId() {
+    const len = this.file.readInt();
+    return this.file.readString(len === 0 ? 4 : len);
+  }
+
+  parseKeyItem() {
+    const id = this.parseId();
+    const value = this.parseItem();
+    return { id, value };
+  }
+
+  parseItem(type = null) {
+    if (!type) type = this.file.readString(4);
+
+    switch (type) {
+      case 'bool':
+        return this.parseBoolean();
+      case 'type':
+      case 'GlbC':
+        return this.parseClass();
+      case 'Objc':
+      case 'GlbO':
+        return new Descriptor(this.file).parse();
+      case 'doub':
+        return this.parseDouble();
+      case 'enum':
+        return this.parseEnum();
+      case 'alis':
+        return this.parseAlias();
+      case 'Pth':
+        return this.parseFilePath();
+      case 'long':
+        return this.parseInteger();
+      case 'comp':
+        return this.parseLargeInteger();
+      case 'VlLs':
+        return this.parseList();
+      case 'ObAr':
+        return this.parseObjectArray();
+      case 'tdta':
+        return this.parseRawData();
+      case 'obj ':
+        return this.parseReference();
+      case 'TEXT':
+        return this.file.readUnicodeString();
+      case 'UntF':
+        return this.parseUnitDouble();
+      case 'UnFl':
+        return this.parseUnitFloat();
+    }
+  }
+
+  parseBoolean() {
+    return this.file.readBoolean();
+  }
+
+  parseDouble() {
+    return this.file.readDouble();
+  }
+
+  parseInteger() {
+    return this.file.readInt();
+  }
+
+  parseLargeInteger() {
+    return this.file.readLongLong();
+  }
+
+  parseIdentifier() {
+    return this.file.readInt();
+  }
+
+  parseIndex() {
+    return this.file.readInt();
+  }
+
+  parseOffset() {
+    return this.file.readInt();
+  }
+
+  parseProperty() {
+    const klass = this.parseClass();
+    const id = this.parseId();
+
+    return { class: klass, id };
+  }
+
+  parseEnum() {
+    const type = this.parseId();
+    const value = this.parseId();
+    return { type, value };
+  }
+
+  parseEnumReference() {
+    const klass = this.parseClass();
+    const type = this.parseId();
+    const value = this.parseId();
+    return { class: klass, type, value };
+  }
+
+  parseAlias() {
+    const len = this.file.readInt();
+    return this.file.readString();
+  }
+
+  parseFilePath() {
+    const len = this.file.readInt();
+    const sig = this.file.readString(4);
+
+    // Little endian. Who knows, man.
+    const pathSize = this.file.read('<i');
+    const numChars = this.file.read('<i');
+
+    const path = this.file.readUnicodeString(numChars);
+    return { sig, path };
+  }
+
+  parseList() {
+    const count = this.file.readInt();
+    let items = [];
+
+    for (var i = 0; i < count; i++) {
+      items.push(this.parseItem());
+    }
+
+    return items;
+  }
+
+  // Not documented anywhere and unsure of the data format. Luckily, this
+  // type is extremely rare. In fact, it's so rare, that I've never run into it
+  // among any of my PSDs.
+  parseObjectArray() {
+    throw `Descriptor object array not implemented yet. Found at ${this.file.tell()}.`;
+  }
+
+  parseRawData() {
+    const len = this.file.readInt();
+    return this.file.read(len);
+  }
+
+  parseReference() {
+    const numItems = this.file.readInt();
+    let type,
+        value,
+        items = [];
+
+    for (var i = 0; i < numItems; i++) {
+      type = this.file.readString(4);
       switch (type) {
-        case 'bool':
-          return this.parseBoolean();
-        case 'type':
-        case 'GlbC':
-          return this.parseClass();
-        case 'Objc':
-        case 'GlbO':
-          return new Descriptor(this.file).parse();
-        case 'doub':
-          return this.parseDouble();
-        case 'enum':
-          return this.parseEnum();
-        case 'alis':
-          return this.parseAlias();
-        case 'Pth':
-          return this.parseFilePath();
-        case 'long':
-          return this.parseInteger();
-        case 'comp':
-          return this.parseLargeInteger();
-        case 'VlLs':
-          return this.parseList();
-        case 'ObAr':
-          return this.parseObjectArray();
-        case 'tdta':
-          return this.parseRawData();
-        case 'obj ':
-          return this.parseReference();
-        case 'TEXT':
-          return this.file.readUnicodeString();
-        case 'UntF':
-          return this.parseUnitDouble();
-        case 'UnFl':
-          return this.parseUnitFloat();
-      }
-    }
-  }, {
-    key: 'parseBoolean',
-    value: function parseBoolean() {
-      return this.file.readBoolean();
-    }
-  }, {
-    key: 'parseDouble',
-    value: function parseDouble() {
-      return this.file.readDouble();
-    }
-  }, {
-    key: 'parseInteger',
-    value: function parseInteger() {
-      return this.file.readInt();
-    }
-  }, {
-    key: 'parseLargeInteger',
-    value: function parseLargeInteger() {
-      return this.file.readLongLong();
-    }
-  }, {
-    key: 'parseIdentifier',
-    value: function parseIdentifier() {
-      return this.file.readInt();
-    }
-  }, {
-    key: 'parseIndex',
-    value: function parseIndex() {
-      return this.file.readInt();
-    }
-  }, {
-    key: 'parseOffset',
-    value: function parseOffset() {
-      return this.file.readInt();
-    }
-  }, {
-    key: 'parseProperty',
-    value: function parseProperty() {
-      var klass = this.parseClass();
-      var id = this.parseId();
-
-      return { class: klass, id: id };
-    }
-  }, {
-    key: 'parseEnum',
-    value: function parseEnum() {
-      var type = this.parseId();
-      var value = this.parseId();
-      return { type: type, value: value };
-    }
-  }, {
-    key: 'parseEnumReference',
-    value: function parseEnumReference() {
-      var klass = this.parseClass();
-      var type = this.parseId();
-      var value = this.parseId();
-      return { class: klass, type: type, value: value };
-    }
-  }, {
-    key: 'parseAlias',
-    value: function parseAlias() {
-      var len = this.file.readInt();
-      return this.file.readString();
-    }
-  }, {
-    key: 'parseFilePath',
-    value: function parseFilePath() {
-      var len = this.file.readInt();
-      var sig = this.file.readString(4);
-
-      // Little endian. Who knows, man.
-      var pathSize = this.file.read('<i');
-      var numChars = this.file.read('<i');
-
-      var path = this.file.readUnicodeString(numChars);
-      return { sig: sig, path: path };
-    }
-  }, {
-    key: 'parseList',
-    value: function parseList() {
-      var count = this.file.readInt();
-      var items = [];
-
-      for (var i = 0; i < count; i++) {
-        items.push(this.parseItem());
+        case 'prop':
+          value = this.parseProperty();break;
+        case 'Clss':
+          value = this.parseClass();break;
+        case 'Enmr':
+          value = this.parseEnumReference();break;
+        case 'Idnt':
+          value = this.parseIdentifier();break;
+        case 'indx':
+          value = this.parseIndex();break;
+        case 'name':
+          value = this.file.readUnicodeString();break;
+        case 'rele':
+          value = this.parseOffset();break;
       }
 
-      return items;
+      items.push({ type, value });
     }
 
-    // Not documented anywhere and unsure of the data format. Luckily, this
-    // type is extremely rare. In fact, it's so rare, that I've never run into it
-    // among any of my PSDs.
+    return items;
+  }
 
-  }, {
-    key: 'parseObjectArray',
-    value: function parseObjectArray() {
-      throw 'Descriptor object array not implemented yet. Found at ' + this.file.tell() + '.';
+  parseUnitDouble() {
+    const unitId = this.file.readString(4);
+    let unit;
+    switch (unitId) {
+      case '#Ang':
+        unit = 'Angle';break;
+      case '#Rsl':
+        unit = 'Density';break;
+      case '#Rlt':
+        unit = 'Distance';break;
+      case '#Nne':
+        unit = 'None';break;
+      case '#Prc':
+        unit = 'Percent';break;
+      case '#Pxl':
+        unit = 'Pixels';break;
+      case '#Mlm':
+        unit = 'Millimeters';break;
+      case '#Pnt':
+        unit = 'Points';break;
     }
-  }, {
-    key: 'parseRawData',
-    value: function parseRawData() {
-      var len = this.file.readInt();
-      return this.file.read(len);
+
+    const value = this.file.readDouble();
+    return { id: unitId, unit, value };
+  }
+
+  parseUnitFloat() {
+    const unitId = this.file.readString(4);
+    let unit;
+    switch (unitId) {
+      case '#Ang':
+        unit = 'Angle';break;
+      case '#Rsl':
+        unit = 'Density';break;
+      case '#Rlt':
+        unit = 'Distance';break;
+      case '#Nne':
+        unit = 'None';break;
+      case '#Prc':
+        unit = 'Percent';break;
+      case '#Pxl':
+        unit = 'Pixels';break;
+      case '#Mlm':
+        unit = 'Millimeters';break;
+      case '#Pnt':
+        unit = 'Points';break;
     }
-  }, {
-    key: 'parseReference',
-    value: function parseReference() {
-      var numItems = this.file.readInt();
-      var type = void 0,
-          value = void 0,
-          items = [];
 
-      for (var i = 0; i < numItems; i++) {
-        type = this.file.readString(4);
-        switch (type) {
-          case 'prop':
-            value = this.parseProperty();break;
-          case 'Clss':
-            value = this.parseClass();break;
-          case 'Enmr':
-            value = this.parseEnumReference();break;
-          case 'Idnt':
-            value = this.parseIdentifier();break;
-          case 'indx':
-            value = this.parseIndex();break;
-          case 'name':
-            value = this.file.readUnicodeString();break;
-          case 'rele':
-            value = this.parseOffset();break;
-        }
-
-        items.push({ type: type, value: value });
-      }
-
-      return items;
-    }
-  }, {
-    key: 'parseUnitDouble',
-    value: function parseUnitDouble() {
-      var unitId = this.file.readString(4);
-      var unit = void 0;
-      switch (unitId) {
-        case '#Ang':
-          unit = 'Angle';break;
-        case '#Rsl':
-          unit = 'Density';break;
-        case '#Rlt':
-          unit = 'Distance';break;
-        case '#Nne':
-          unit = 'None';break;
-        case '#Prc':
-          unit = 'Percent';break;
-        case '#Pxl':
-          unit = 'Pixels';break;
-        case '#Mlm':
-          unit = 'Millimeters';break;
-        case '#Pnt':
-          unit = 'Points';break;
-      }
-
-      var value = this.file.readDouble();
-      return { id: unitId, unit: unit, value: value };
-    }
-  }, {
-    key: 'parseUnitFloat',
-    value: function parseUnitFloat() {
-      var unitId = this.file.readString(4);
-      var unit = void 0;
-      switch (unitId) {
-        case '#Ang':
-          unit = 'Angle';break;
-        case '#Rsl':
-          unit = 'Density';break;
-        case '#Rlt':
-          unit = 'Distance';break;
-        case '#Nne':
-          unit = 'None';break;
-        case '#Prc':
-          unit = 'Percent';break;
-        case '#Pxl':
-          unit = 'Pixels';break;
-        case '#Mlm':
-          unit = 'Millimeters';break;
-        case '#Pnt':
-          unit = 'Points';break;
-      }
-
-      var value = this.file.readFloat();
-      return { id: unitId, unit: unit, value: value };
-    }
-  }]);
-
-  return Descriptor;
-}();
-
+    const value = this.file.readFloat();
+    return { id: unitId, unit, value };
+  }
+}
 exports.default = Descriptor;
 
 /***/ }),
@@ -1093,17 +995,11 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _lodash = __webpack_require__(/*! lodash */ 105);
 
 var _lodash2 = _interopRequireDefault(_lodash);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 // The Node abstraction is one of the most important in PSD.js. It's the base for the
 // tree representation of the document structure. Every layer and group is a node in
@@ -1114,14 +1010,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 // higher-level API that makes it easier and less verbose to access the wealth of
 // information that's stored in each PSD.
 
-var Node = function () {
-  function Node(layer) {
-    var _this = this;
+class Node {
 
-    var parent = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
-
-    _classCallCheck(this, Node);
-
+  constructor(layer, parent = null) {
     Object.defineProperty(this, 'type', {
       enumerable: true,
       writable: true,
@@ -1149,260 +1040,191 @@ var Node = function () {
     this.leftOffset = 0;
 
     Object.defineProperty(this, 'top', {
-      get: function get() {
-        _this.coords.top + _this.topOffset;
+      get: () => {
+        this.coords.top + this.topOffset;
       },
-      set: function set(val) {
-        return _this.coords.top = val;
-      }
+      set: val => this.coords.top = val
     });
 
     Object.defineProperty(this, 'right', {
-      get: function get() {
-        _this.coords.right + _this.topOffset;
+      get: () => {
+        this.coords.right + this.topOffset;
       },
-      set: function set(val) {
-        return _this.coords.right = val;
-      }
+      set: val => this.coords.right = val
     });
 
     Object.defineProperty(this, 'bottom', {
-      get: function get() {
-        _this.coords.bottom + _this.topOffset;
+      get: () => {
+        this.coords.bottom + this.topOffset;
       },
-      set: function set(val) {
-        return _this.coords.bottom = val;
-      }
+      set: val => this.coords.bottom = val
     });
 
     Object.defineProperty(this, 'left', {
-      get: function get() {
-        _this.coords.left + _this.topOffset;
+      get: () => {
+        this.coords.left + this.topOffset;
       },
-      set: function set(val) {
-        return _this.coords.left = val;
+      set: val => this.coords.left = val
+    });
+
+    Object.defineProperty(this, 'width', { get: () => this.right - this.left });
+    Object.defineProperty(this, 'height', { get: () => this.bottom - this.top });
+  }
+
+  info(name) {
+    return this.layer.adjustments[name];
+  }
+
+  // Is this layer/group visible? This checks all possible places that could define
+  // whether or not this is true, e.g. clipping masks. It also checks the current
+  // layer comp visibility override (not implemented yet).
+  visible() {
+    if (this.layer.clipped && !this.clippingMask().visible) return false;
+    return this.forceVisible !== null ? this.forceVisible : this.layer.visible;
+  }
+
+  hidden() {
+    return !this.visible();
+  }
+
+  isLayer() {
+    return this.type === "layer";
+  }
+  isGroup() {
+    return this.type === "group";
+  }
+  isRoot() {
+    return this.type === "root";
+  }
+
+  clippingMask() {
+    if (!this.layer.clipped) return null;
+    let maskNode = this.nextSibling();
+    while (maskNode.clipped) {
+      maskNode = maskNode.nextSibling();
+    }
+
+    return maskNode;
+  }
+
+  updateDimensions() {
+    if (this.isLayer()) return;
+
+    for (var i = 0; i < this._children.length; i++) {
+      this._children[i].updateDimensions();
+    }
+
+    if (this.isRoot()) return;
+
+    let nonEmptyChildren = this._children.filter(c => !c.isEmpty());
+    if (nonEmptyChildren.length === 0) {
+      this.left = this.top = this.bottom = this.right = 0;
+    } else {
+      this.left = Math.min(...nonEmptyChildren.map(c => c.left));
+      this.top = Math.min(...nonEmptyChildren.map(c => c.top));
+      this.bottom = Math.max(...nonEmptyChildren.map(c => c.bottom));
+      this.right = Math.max(...nonEmptyChildren.map(c => c.right));
+    }
+  }
+
+  //
+  // Ancestry methods
+  //
+
+  root() {
+    if (this.isRoot()) return this;
+    return this.parent.root();
+  }
+
+  isRoot() {
+    return this.depth() === 0;
+  }
+
+  children() {
+    return this._children;
+  }
+
+  ancestors() {
+    if (!this.parent || this.parent.isRoot()) return [];
+    return this.parent.ancestors().concat([this.parent]);
+  }
+
+  hasChildren() {
+    return this._children.length > 0;
+  }
+
+  childless() {
+    return !this.hasChildren();
+  }
+
+  siblings() {
+    if (!this.parent) return [];
+    return this.parent.children();
+  }
+
+  nextSibling() {
+    if (!this.parent) return null;
+    return this.siblings()[this.siblings().indexOf(this) + 1];
+  }
+
+  prevSibling() {
+    if (!this.parent) return null;
+    return this.siblings()[this.siblings().indexOf(this) - 1];
+  }
+
+  hasSiblings() {
+    return this.siblings().length > 1;
+  }
+  onlyChild() {
+    return !this.hasSiblings();
+  }
+
+  descendants() {
+    return _lodash2.default.flatten(this._children.map(n => n.subtree()));
+  }
+
+  subtree() {
+    return [this].concat(this.descendants());
+  }
+
+  depth() {
+    return this.ancestors().length + 1;
+  }
+
+  path(asArray = false) {
+    const path = this.ancestors().map(n => n.name).concat([this.name]);
+    return asArray ? path : path.join('/');
+  }
+
+  childrenAtPath(path, caseSensitive = true) {
+    if (!Array.isArray(path)) {
+      path = path.split('/').filter(p => p.length > 0);
+    }
+
+    let query = path.shift();
+    if (!caseSensitive) query = query.toLowerCase();
+
+    const matches = this.children().filter(c => {
+      if (caseSensitive) {
+        return c.name === query;
+      } else {
+        return c.name.toLowerCase() === query;
       }
     });
 
-    Object.defineProperty(this, 'width', { get: function get() {
-        return _this.right - _this.left;
-      } });
-    Object.defineProperty(this, 'height', { get: function get() {
-        return _this.bottom - _this.top;
-      } });
+    if (path.length === 0) {
+      return matches;
+    }
+
+    return _lodash2.default.flatten(matches.map(m => m.childrenAtPath(path, caseSensitive)));
   }
-
-  _createClass(Node, [{
-    key: 'info',
-    value: function info(name) {
-      return this.layer.adjustments[name];
-    }
-
-    // Is this layer/group visible? This checks all possible places that could define
-    // whether or not this is true, e.g. clipping masks. It also checks the current
-    // layer comp visibility override (not implemented yet).
-
-  }, {
-    key: 'visible',
-    value: function visible() {
-      if (this.layer.clipped && !this.clippingMask().visible) return false;
-      return this.forceVisible !== null ? this.forceVisible : this.layer.visible;
-    }
-  }, {
-    key: 'hidden',
-    value: function hidden() {
-      return !this.visible();
-    }
-  }, {
-    key: 'isLayer',
-    value: function isLayer() {
-      return this.type === "layer";
-    }
-  }, {
-    key: 'isGroup',
-    value: function isGroup() {
-      return this.type === "group";
-    }
-  }, {
-    key: 'isRoot',
-    value: function isRoot() {
-      return this.type === "root";
-    }
-  }, {
-    key: 'clippingMask',
-    value: function clippingMask() {
-      if (!this.layer.clipped) return null;
-      var maskNode = this.nextSibling();
-      while (maskNode.clipped) {
-        maskNode = maskNode.nextSibling();
-      }
-
-      return maskNode;
-    }
-  }, {
-    key: 'updateDimensions',
-    value: function updateDimensions() {
-      if (this.isLayer()) return;
-
-      for (var i = 0; i < this._children.length; i++) {
-        this._children[i].updateDimensions();
-      }
-
-      if (this.isRoot()) return;
-
-      var nonEmptyChildren = this._children.filter(function (c) {
-        return !c.isEmpty();
-      });
-      if (nonEmptyChildren.length === 0) {
-        this.left = this.top = this.bottom = this.right = 0;
-      } else {
-        this.left = Math.min.apply(Math, _toConsumableArray(nonEmptyChildren.map(function (c) {
-          return c.left;
-        })));
-        this.top = Math.min.apply(Math, _toConsumableArray(nonEmptyChildren.map(function (c) {
-          return c.top;
-        })));
-        this.bottom = Math.max.apply(Math, _toConsumableArray(nonEmptyChildren.map(function (c) {
-          return c.bottom;
-        })));
-        this.right = Math.max.apply(Math, _toConsumableArray(nonEmptyChildren.map(function (c) {
-          return c.right;
-        })));
-      }
-    }
-
-    //
-    // Ancestry methods
-    //
-
-  }, {
-    key: 'root',
-    value: function root() {
-      if (this.isRoot()) return this;
-      return this.parent.root();
-    }
-  }, {
-    key: 'isRoot',
-    value: function isRoot() {
-      return this.depth() === 0;
-    }
-  }, {
-    key: 'children',
-    value: function children() {
-      return this._children;
-    }
-  }, {
-    key: 'ancestors',
-    value: function ancestors() {
-      if (!this.parent || this.parent.isRoot()) return [];
-      return this.parent.ancestors().concat([this.parent]);
-    }
-  }, {
-    key: 'hasChildren',
-    value: function hasChildren() {
-      return this._children.length > 0;
-    }
-  }, {
-    key: 'childless',
-    value: function childless() {
-      return !this.hasChildren();
-    }
-  }, {
-    key: 'siblings',
-    value: function siblings() {
-      if (!this.parent) return [];
-      return this.parent.children();
-    }
-  }, {
-    key: 'nextSibling',
-    value: function nextSibling() {
-      if (!this.parent) return null;
-      return this.siblings()[this.siblings().indexOf(this) + 1];
-    }
-  }, {
-    key: 'prevSibling',
-    value: function prevSibling() {
-      if (!this.parent) return null;
-      return this.siblings()[this.siblings().indexOf(this) - 1];
-    }
-  }, {
-    key: 'hasSiblings',
-    value: function hasSiblings() {
-      return this.siblings().length > 1;
-    }
-  }, {
-    key: 'onlyChild',
-    value: function onlyChild() {
-      return !this.hasSiblings();
-    }
-  }, {
-    key: 'descendants',
-    value: function descendants() {
-      return _lodash2.default.flatten(this._children.map(function (n) {
-        return n.subtree();
-      }));
-    }
-  }, {
-    key: 'subtree',
-    value: function subtree() {
-      return [this].concat(this.descendants());
-    }
-  }, {
-    key: 'depth',
-    value: function depth() {
-      return this.ancestors().length + 1;
-    }
-  }, {
-    key: 'path',
-    value: function path() {
-      var asArray = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
-
-      var path = this.ancestors().map(function (n) {
-        return n.name;
-      }).concat([this.name]);
-      return asArray ? path : path.join('/');
-    }
-  }, {
-    key: 'childrenAtPath',
-    value: function childrenAtPath(path) {
-      var caseSensitive = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-
-      if (!Array.isArray(path)) {
-        path = path.split('/').filter(function (p) {
-          return p.length > 0;
-        });
-      }
-
-      var query = path.shift();
-      if (!caseSensitive) query = query.toLowerCase();
-
-      var matches = this.children().filter(function (c) {
-        if (caseSensitive) {
-          return c.name === query;
-        } else {
-          return c.name.toLowerCase() === query;
-        }
-      });
-
-      if (path.length === 0) {
-        return matches;
-      }
-
-      return _lodash2.default.flatten(matches.map(function (m) {
-        return m.childrenAtPath(path, caseSensitive);
-      }));
-    }
-  }]);
-
-  return Node;
-}();
-
+}
+exports.default = Node;
 Object.defineProperty(Node, 'PROPERTIES', {
   enumerable: true,
   writable: true,
   value: ['name', 'left', 'right', 'top', 'bottom', 'height', 'width']
 });
-exports.default = Node;
 
 /***/ }),
 /* 16 */
@@ -1989,8 +1811,6 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.getArtboardDetails = undefined;
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _file = __webpack_require__(/*! ./psd/file */ 29);
 
 var _file2 = _interopRequireDefault(_file);
@@ -2023,181 +1843,49 @@ var _artboards = __webpack_require__(/*! ./psd/artboards */ 109);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 exports.getArtboardDetails = _artboards.getArtboardDetails;
-
-var PSD = function () {
-  function PSD(fd, options) {
-    _classCallCheck(this, PSD);
-
+class PSD {
+  constructor(fd, options) {
     this.file = new _file2.default(fd);
     this.parsed = false;
     this.header = null;
     this.options = options;
   }
 
-  _createClass(PSD, [{
-    key: 'parse',
-    value: function () {
-      var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
-        return regeneratorRuntime.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                if (!this.parsed) {
-                  _context.next = 2;
-                  break;
-                }
+  async parse() {
+    if (this.parsed) return;
 
-                return _context.abrupt('return');
+    await this.parseHeader();
+    await this.parseResources();
+    await this.parseLayerMask();
 
-              case 2:
-                _context.next = 4;
-                return this.parseHeader();
+    this.parsed = true;
+  }
 
-              case 4:
-                _context.next = 6;
-                return this.parseResources();
+  tree() {
+    return new _root2.default(this);
+  }
 
-              case 6:
-                _context.next = 8;
-                return this.parseLayerMask();
+  async parseHeader() {
+    this.header = new _header2.default(this.file);
+    await this.header.parse();
+  }
 
-              case 8:
+  async parseResources() {
+    this.resources = new _resources2.default(this.file);
+    await this.resources.skip();
+  }
 
-                this.parsed = true;
+  async parseLayerMask() {
+    this.layerMask = new _layer_mask2.default(this.file, this.header);
+    await this.layerMask.parse();
+  }
 
-              case 9:
-              case 'end':
-                return _context.stop();
-            }
-          }
-        }, _callee, this);
-      }));
-
-      function parse() {
-        return _ref.apply(this, arguments);
-      }
-
-      return parse;
-    }()
-  }, {
-    key: 'tree',
-    value: function tree() {
-      return new _root2.default(this);
-    }
-  }, {
-    key: 'parseHeader',
-    value: function () {
-      var _ref2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2() {
-        return regeneratorRuntime.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                this.header = new _header2.default(this.file);
-                _context2.next = 3;
-                return this.header.parse();
-
-              case 3:
-              case 'end':
-                return _context2.stop();
-            }
-          }
-        }, _callee2, this);
-      }));
-
-      function parseHeader() {
-        return _ref2.apply(this, arguments);
-      }
-
-      return parseHeader;
-    }()
-  }, {
-    key: 'parseResources',
-    value: function () {
-      var _ref3 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3() {
-        return regeneratorRuntime.wrap(function _callee3$(_context3) {
-          while (1) {
-            switch (_context3.prev = _context3.next) {
-              case 0:
-                this.resources = new _resources2.default(this.file);
-                _context3.next = 3;
-                return this.resources.skip();
-
-              case 3:
-              case 'end':
-                return _context3.stop();
-            }
-          }
-        }, _callee3, this);
-      }));
-
-      function parseResources() {
-        return _ref3.apply(this, arguments);
-      }
-
-      return parseResources;
-    }()
-  }, {
-    key: 'parseLayerMask',
-    value: function () {
-      var _ref4 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee4() {
-        return regeneratorRuntime.wrap(function _callee4$(_context4) {
-          while (1) {
-            switch (_context4.prev = _context4.next) {
-              case 0:
-                this.layerMask = new _layer_mask2.default(this.file, this.header);
-                _context4.next = 3;
-                return this.layerMask.parse();
-
-              case 3:
-              case 'end':
-                return _context4.stop();
-            }
-          }
-        }, _callee4, this);
-      }));
-
-      function parseLayerMask() {
-        return _ref4.apply(this, arguments);
-      }
-
-      return parseLayerMask;
-    }()
-  }, {
-    key: 'parseImage',
-    value: function () {
-      var _ref5 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee5() {
-        return regeneratorRuntime.wrap(function _callee5$(_context5) {
-          while (1) {
-            switch (_context5.prev = _context5.next) {
-              case 0:
-                this.image = new _image2.default(this.file, this.header);
-                return _context5.abrupt('return', this.image.parse());
-
-              case 2:
-              case 'end':
-                return _context5.stop();
-            }
-          }
-        }, _callee5, this);
-      }));
-
-      function parseImage() {
-        return _ref5.apply(this, arguments);
-      }
-
-      return parseImage;
-    }()
-  }]);
-
-  return PSD;
-}();
-
-exports.default = PSD;
+  async parseImage() {
+    this.image = new _image2.default(this.file, this.header);
+    return this.image.parse();
+  }
+}exports.default = PSD;
 ;
 
 /***/ }),
@@ -2216,8 +1904,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _jspack = __webpack_require__(/*! jspack */ 30);
 
 var _iconvLite = __webpack_require__(/*! iconv-lite */ 16);
@@ -2230,133 +1916,81 @@ var _fsExtra2 = _interopRequireDefault(_fsExtra);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+class File {
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var File = function () {
-  function File(fd) {
-    _classCallCheck(this, File);
-
+  constructor(fd) {
     this.fd = fd;
     this.pos = 0;
     this.chunkPos = 0;
   }
 
-  _createClass(File, [{
-    key: 'tell',
-    value: function tell() {
-      if (!this.chunk) {
-        return 0;
-      }
-      // Need to take the chunk position into account
-      return this.pos - this.chunk.length + this.chunkPos;
+  tell() {
+    if (!this.chunk) {
+      return 0;
     }
-  }, {
-    key: 'readChunk',
-    value: function () {
-      var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(length) {
-        var start = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.tell();
-        var buffer, result;
-        return regeneratorRuntime.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                console.log('LOADING CHUNK', start, length);
-                this.chunkPos = 0;
-                buffer = Buffer.alloc(length);
-                _context.next = 5;
-                return _fsExtra2.default.read(this.fd, buffer, 0, length, start);
+    // Need to take the chunk position into account
+    return this.pos - this.chunk.length + this.chunkPos;
+  }
 
-              case 5:
-                result = _context.sent;
+  async readChunk(length, start = this.tell()) {
+    this.chunkPos = 0;
+    const buffer = Buffer.alloc(length);
+    const result = await _fsExtra2.default.read(this.fd, buffer, 0, length, start);
 
+    // Set the file position to the end of the chunk that we have just read
+    this.pos = start + result.bytesRead;
+    this.chunk = result.buffer;
+  }
 
-                // Set the file position to the end of the chunk that we have just read
-                this.pos = start + result.bytesRead;
-                this.chunk = result.buffer;
-
-              case 8:
-              case 'end':
-                return _context.stop();
-            }
-          }
-        }, _callee, this);
-      }));
-
-      function readChunk(_x2) {
-        return _ref.apply(this, arguments);
-      }
-
-      return readChunk;
-    }()
-  }, {
-    key: 'read',
-    value: function read(length) {
-      if (!this.chunk) {
-        console.warn('NO CHUNK LOADED');
-      }
-
-      if (this.chunkPos + length > this.chunk.length) {
-        console.warn('NOT ENOUGH DATA', this.chunkPos, length);
-      }
-
-      var data = this.chunk.slice(this.chunkPos, this.chunkPos + length);
-      this.chunkPos += length;
-
-      return data;
+  read(length) {
+    if (!this.chunk) {
+      console.warn('NO CHUNK LOADED');
     }
-  }, {
-    key: 'readf',
-    value: function readf(format) {
-      var len = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
 
-      return _jspack.jspack.Unpack(format, this.read(len || _jspack.jspack.CalcLength(format)));
+    if (this.chunkPos + length > this.chunk.length) {
+      console.warn('NOT ENOUGH DATA', this.chunkPos, length);
     }
-  }, {
-    key: 'seek',
-    value: function seek(amt) {
-      var rel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
 
-      // NOTE: amt is referring to the position in the file, not the chunk.
-      if (rel) {
-        // If relative, we can just bump the chunk position
-        this.chunkPos += amt;
-        return;
-      }
+    const data = this.chunk.slice(this.chunkPos, this.chunkPos + length);
+    this.chunkPos += length;
 
-      this.chunkPos = amt - this.pos + this.chunk.length;
+    return data;
+  }
+
+  readf(format, len = null) {
+    return _jspack.jspack.Unpack(format, this.read(len || _jspack.jspack.CalcLength(format)));
+  }
+
+  seek(amt, rel = false) {
+    // NOTE: amt is referring to the position in the file, not the chunk.
+    if (rel) {
+      // If relative, we can just bump the chunk position
+      this.chunkPos += amt;
+      return;
     }
-  }, {
-    key: 'readString',
-    value: function readString(length) {
-      return String.fromCharCode.apply(null, this.read(length)).replace(/\u0000/g, '');
-    }
-  }, {
-    key: 'readUnicodeString',
-    value: function readUnicodeString() {
-      var length = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
 
-      if (!length) length = this.readInt();
-      return _iconvLite2.default.decode(new Buffer(this.read(length * 2)), 'utf-16be').replace(/\u0000/g, '');
-    }
-  }, {
-    key: 'readByte',
-    value: function readByte() {
-      return this.read(1)[0];
-    }
-  }, {
-    key: 'readBoolean',
-    value: function readBoolean() {
-      return this.readByte() !== 0;
-    }
-  }]);
+    this.chunkPos = amt - this.pos + this.chunk.length;
+  }
 
-  return File;
-}();
+  readString(length) {
+    return String.fromCharCode.apply(null, this.read(length)).replace(/\u0000/g, '');
+  }
 
-// Defines all of the readers for each data type on File.
+  readUnicodeString(length = null) {
+    if (!length) length = this.readInt();
+    return _iconvLite2.default.decode(new Buffer(this.read(length * 2)), 'utf-16be').replace(/\u0000/g, '');
+  }
 
+  readByte() {
+    return this.read(1)[0];
+  }
+
+  readBoolean() {
+    return this.readByte() !== 0;
+  }
+}
+
+exports.default = File; // Defines all of the readers for each data type on File.
 
 Object.defineProperty(File, 'FORMATS', {
   enumerable: true,
@@ -2397,13 +2031,12 @@ Object.defineProperty(File, 'MAX_CHUNK_SIZE', {
   writable: true,
   value: 10000000
 });
-exports.default = File;
 for (var format in File.FORMATS) {
   if (!File.FORMATS.hasOwnProperty(format)) continue;
-  var info = File.FORMATS[format];
+  const info = File.FORMATS[format];
 
   (function (format, info) {
-    File.prototype['read' + format] = function () {
+    File.prototype[`read${format}`] = function () {
       return this.readf(info.code, info.length)[0];
     };
   })(format, info);
@@ -7867,14 +7500,7 @@ module.exports = {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Header = function () {
+class Header {
 
   // The bit depth of the PSD.
 
@@ -7886,9 +7512,7 @@ var Header = function () {
 
 
   // Read enough to parse the header
-  function Header(file) {
-    _classCallCheck(this, Header);
-
+  constructor(file) {
     Object.defineProperty(this, 'sig', {
       enumerable: true,
       writable: true,
@@ -7940,82 +7564,51 @@ var Header = function () {
   // The signature of the PSD. Should be 8BPS.
 
 
-  _createClass(Header, [{
-    key: 'parse',
-    value: function () {
-      var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
-        var file, colorDataLen;
-        return regeneratorRuntime.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                file = this.file;
-                _context.next = 3;
-                return file.readChunk(Header.CHUNK_SIZE);
+  async parse() {
+    const { file } = this;
 
-              case 3:
+    await file.readChunk(Header.CHUNK_SIZE);
 
-                this.sig = file.readString(4);
-                this._validateSignature();
+    this.sig = file.readString(4);
+    this._validateSignature();
 
-                this.version = file.readUShort();
+    this.version = file.readUShort();
 
-                file.seek(6, true);
+    file.seek(6, true);
 
-                this.channels = file.readUShort();
-                this.rows = this.height = file.readUInt();
-                this.cols = this.width = file.readUInt();
-                this.depth = file.readUShort();
-                this.mode = file.readUShort();
+    this.channels = file.readUShort();
+    this.rows = this.height = file.readUInt();
+    this.cols = this.width = file.readUInt();
+    this.depth = file.readUShort();
+    this.mode = file.readUShort();
 
-                colorDataLen = file.readUInt();
+    const colorDataLen = file.readUInt();
+    file.seek(colorDataLen, true);
+  }
 
-                file.seek(colorDataLen, true);
+  modeName() {
+    return Header.MODES[this.mode];
+  }
 
-              case 14:
-              case 'end':
-                return _context.stop();
-            }
-          }
-        }, _callee, this);
-      }));
+  export() {
+    return {
+      sig: this.sig,
+      version: this.version,
+      channels: this.channels,
+      rows: this.rows,
+      cols: this.cols,
+      depth: this.depth,
+      mode: this.mode
+    };
+  }
 
-      function parse() {
-        return _ref.apply(this, arguments);
-      }
-
-      return parse;
-    }()
-  }, {
-    key: 'modeName',
-    value: function modeName() {
-      return Header.MODES[this.mode];
+  _validateSignature() {
+    if (this.sig != '8BPS') {
+      throw new Error(`Invalid file signature detected. Got ${this.sig}, expected 8BPS.`);
     }
-  }, {
-    key: 'export',
-    value: function _export() {
-      return {
-        sig: this.sig,
-        version: this.version,
-        channels: this.channels,
-        rows: this.rows,
-        cols: this.cols,
-        depth: this.depth,
-        mode: this.mode
-      };
-    }
-  }, {
-    key: '_validateSignature',
-    value: function _validateSignature() {
-      if (this.sig != '8BPS') {
-        throw new Error('Invalid file signature detected. Got ' + this.sig + ', expected 8BPS.');
-      }
-    }
-  }]);
-
-  return Header;
-}();
-
+  }
+}
+exports.default = Header;
 Object.defineProperty(Header, 'MODES', {
   enumerable: true,
   writable: true,
@@ -8026,7 +7619,6 @@ Object.defineProperty(Header, 'CHUNK_SIZE', {
   writable: true,
   value: 10000
 });
-exports.default = Header;
 
 /***/ }),
 /* 74 */
@@ -8044,120 +7636,59 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _resource = __webpack_require__(/*! ./resource */ 75);
 
 var _resource2 = _interopRequireDefault(_resource);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Resources = function () {
-  function Resources(file) {
-    _classCallCheck(this, Resources);
-
+class Resources {
+  constructor(file) {
     this.file = file;
     this.resources = {};
     this.typeIndex = {};
     this.length = null;
   }
 
-  _createClass(Resources, [{
-    key: 'skip',
-    value: function () {
-      var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
-        return regeneratorRuntime.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                this.file.seek(this.file.readInt(), true);
-                _context.next = 3;
-                return this.file.readChunk(4);
+  async skip() {
+    this.file.seek(this.file.readInt(), true);
+    await this.file.readChunk(4);
+  }
 
-              case 3:
-              case 'end':
-                return _context.stop();
-            }
-          }
-        }, _callee, this);
-      }));
+  async parse() {
+    this.length = this.file.readInt();
 
-      function skip() {
-        return _ref.apply(this, arguments);
-      }
+    // Read the next int so the next parse method can know it's own length
+    await this.file.readChunk(this.length + 4);
 
-      return skip;
-    }()
-  }, {
-    key: 'parse',
-    value: function () {
-      var _ref2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2() {
-        var finish, resource, section;
-        return regeneratorRuntime.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                this.length = this.file.readInt();
+    const finish = this.length + this.file.tell();
 
-                // Read the next int so the next parse method can know it's own length
-                _context2.next = 3;
-                return this.file.readChunk(this.length + 4);
+    while (this.file.tell() < finish) {
+      const resource = new _resource2.default(this.file);
+      const section = resource.parse();
 
-              case 3:
-                finish = this.length + this.file.tell();
+      this.resources[resource.id] = section;
 
-
-                while (this.file.tell() < finish) {
-                  resource = new _resource2.default(this.file);
-                  section = resource.parse();
-
-
-                  this.resources[resource.id] = section;
-
-                  if (resource.name) {
-                    this.typeIndex[resource.name] = resource.id;
-                  }
-                }
-
-                this.file.seek(finish);
-
-              case 6:
-              case 'end':
-                return _context2.stop();
-            }
-          }
-        }, _callee2, this);
-      }));
-
-      function parse() {
-        return _ref2.apply(this, arguments);
-      }
-
-      return parse;
-    }()
-  }, {
-    key: 'resource',
-    value: function resource(search) {
-      if (typeof search === 'string') {
-        return this.byType(search);
-      } else {
-        return this.resources[search];
+      if (resource.name) {
+        this.typeIndex[resource.name] = resource.id;
       }
     }
-  }, {
-    key: 'byType',
-    value: function byType(name) {
-      return this.resources[this.typeIndex[name]];
+
+    this.file.seek(finish);
+  }
+
+  resource(search) {
+    if (typeof search === 'string') {
+      return this.byType(search);
+    } else {
+      return this.resources[search];
     }
-  }]);
+  }
 
-  return Resources;
-}();
-
+  byType(name) {
+    return this.resources[this.typeIndex[name]];
+  }
+}
 exports.default = Resources;
 
 /***/ }),
@@ -8176,8 +7707,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _util = __webpack_require__(/*! ./util */ 9);
 
 var _layer_comps = __webpack_require__(/*! ./resources/layer_comps */ 76);
@@ -8186,12 +7715,9 @@ var _layer_comps2 = _interopRequireDefault(_layer_comps);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+class Resource {
 
-var Resource = function () {
-  function Resource(file) {
-    _classCallCheck(this, Resource);
-
+  constructor(file) {
     this.file = file;
     this.id = null;
     this.name = null;
@@ -8199,52 +7725,41 @@ var Resource = function () {
     this.length = 0;
   }
 
-  _createClass(Resource, [{
-    key: 'parse',
-    value: function parse() {
-      this.type = this.file.readString(4);
-      this.id = this.file.readShort();
+  parse() {
+    this.type = this.file.readString(4);
+    this.id = this.file.readShort();
 
-      var nameLength = (0, _util.pad2)(this.file.readByte() + 1) - 1;
-      this.name = this.file.readString(nameLength);
-      this.length = (0, _util.pad2)(this.file.readInt());
+    const nameLength = (0, _util.pad2)(this.file.readByte() + 1) - 1;
+    this.name = this.file.readString(nameLength);
+    this.length = (0, _util.pad2)(this.file.readInt());
 
-      var resourceEnd = this.file.tell() + this.length;
+    const resourceEnd = this.file.tell() + this.length;
 
-      this._buildResourceSection();
+    this._buildResourceSection();
 
-      if (!this.section) {
-        this.file.seek(resourceEnd);
-        return;
-      }
-
-      return this.section;
+    if (!this.section) {
+      this.file.seek(resourceEnd);
+      return;
     }
-  }, {
-    key: '_buildResourceSection',
-    value: function _buildResourceSection() {
-      var _this = this;
 
-      var Section = Resource.RESOURCES.find(function (r) {
-        return r.id === _this.id;
-      });
-      if (!Section) return;
+    return this.section;
+  }
 
-      this.name = Section.name;
-      this.section = new Section(this);
-      this.section.parse();
-    }
-  }]);
+  _buildResourceSection() {
+    const Section = Resource.RESOURCES.find(r => r.id === this.id);
+    if (!Section) return;
 
-  return Resource;
-}();
-
+    this.name = Section.name;
+    this.section = new Section(this);
+    this.section.parse();
+  }
+}
+exports.default = Resource;
 Object.defineProperty(Resource, 'RESOURCES', {
   enumerable: true,
   writable: true,
   value: [_layer_comps2.default]
 });
-exports.default = Resource;
 
 /***/ }),
 /* 76 */
@@ -8262,71 +7777,50 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _descriptor = __webpack_require__(/*! ../descriptor */ 14);
 
 var _descriptor2 = _interopRequireDefault(_descriptor);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+class LayerComps {
 
-var LayerComps = function () {
-  _createClass(LayerComps, null, [{
-    key: 'visibilityCaptured',
-    value: function visibilityCaptured(comp) {
-      return comp.capturedInfo & parseInt('001', 2) > 0;
-    }
-  }, {
-    key: 'positionCaptured',
-    value: function positionCaptured(comp) {
-      return comp.positionCaptured & parseInt('010', 2) > 0;
-    }
-  }, {
-    key: 'appearanceCaptured',
-    value: function appearanceCaptured(comp) {
-      return comp.appearanceCaptured & parseInt('100', 2) > 0;
-    }
-  }]);
+  static visibilityCaptured(comp) {
+    return comp.capturedInfo & parseInt('001', 2) > 0;
+  }
 
-  function LayerComps(resource) {
-    _classCallCheck(this, LayerComps);
+  static positionCaptured(comp) {
+    return comp.positionCaptured & parseInt('010', 2) > 0;
+  }
 
+  static appearanceCaptured(comp) {
+    return comp.appearanceCaptured & parseInt('100', 2) > 0;
+  }
+
+  constructor(resource) {
     this.resource = resource;
     this.file = this.resource.file;
     this.data = null;
   }
 
-  _createClass(LayerComps, [{
-    key: 'parse',
-    value: function parse() {
-      this.file.seek(4, true);
-      this.data = new _descriptor2.default(this.file).parse();
-    }
-  }, {
-    key: 'names',
-    value: function names() {
-      return this.data.list.map(function (comp) {
-        return comp['Nm  '];
-      });
-    }
-  }, {
-    key: 'export',
-    value: function _export() {
-      return this.data.list.map(function (comp) {
-        return {
-          id: comp.compID,
-          name: comp['Nm  '],
-          capturedInfo: comp.capturedInfo
-        };
-      });
-    }
-  }]);
+  parse() {
+    this.file.seek(4, true);
+    this.data = new _descriptor2.default(this.file).parse();
+  }
 
-  return LayerComps;
-}();
+  names() {
+    return this.data.list.map(comp => comp['Nm  ']);
+  }
 
+  export() {
+    return this.data.list.map(comp => ({
+      id: comp.compID,
+      name: comp['Nm  '],
+      capturedInfo: comp.capturedInfo
+    }));
+  }
+}
+exports.default = LayerComps;
 Object.defineProperty(LayerComps, 'id', {
   enumerable: true,
   writable: true,
@@ -8337,7 +7831,6 @@ Object.defineProperty(LayerComps, 'name', {
   writable: true,
   value: 'layerComps'
 });
-exports.default = LayerComps;
 
 /***/ }),
 /* 77 */
@@ -8355,8 +7848,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _util = __webpack_require__(/*! ./util */ 9);
 
 var _layer = __webpack_require__(/*! ./layer */ 78);
@@ -8365,14 +7856,9 @@ var _layer2 = _interopRequireDefault(_layer);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+class LayerMask {
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var LayerMask = function () {
-  function LayerMask(file, header) {
-    _classCallCheck(this, LayerMask);
-
+  constructor(file, header) {
     Object.defineProperty(this, 'layers', {
       enumerable: true,
       writable: true,
@@ -8393,137 +7879,75 @@ var LayerMask = function () {
     this.header = header;
   }
 
-  _createClass(LayerMask, [{
-    key: 'skip',
-    value: function () {
-      var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
-        return regeneratorRuntime.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                this.file.seek(this.file.readInt(), true);
-                _context.next = 3;
-                return this.file.readChunk(4);
+  async skip() {
+    this.file.seek(this.file.readInt(), true);
+    await this.file.readChunk(4);
+  }
 
-              case 3:
-              case 'end':
-                return _context.stop();
-            }
-          }
-        }, _callee, this);
-      }));
+  async parse() {
+    const maskSize = this.file.readInt();
+    const finish = maskSize + this.file.tell();
 
-      function skip() {
-        return _ref.apply(this, arguments);
+    // Read the next int so the next parse method can know it's own length
+    await this.file.readChunk(maskSize + 4);
+
+    if (maskSize <= 0) return;
+
+    this._parseLayers();
+    this._parseGlobalMask();
+
+    this.layers.reverse();
+
+    this.file.seek(finish);
+  }
+
+  _parseLayers() {
+    const layerInfoSize = (0, _util.pad2)(this.file.readInt());
+
+    if (layerInfoSize > 0) {
+      let layerCount = this.file.readShort();
+
+      if (layerCount < 0) {
+        layerCount = Math.abs(layerCount);
+        this.mergedAlpha = true;
       }
 
-      return skip;
-    }()
-  }, {
-    key: 'parse',
-    value: function () {
-      var _ref2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2() {
-        var maskSize, finish;
-        return regeneratorRuntime.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                maskSize = this.file.readInt();
-                finish = maskSize + this.file.tell();
+      let layer;
+      for (var i = 0; i < layerCount; i++) {
+        layer = new _layer2.default(this.file, this.header);
+        layer.parse();
 
-                // Read the next int so the next parse method can know it's own length
-
-                _context2.next = 4;
-                return this.file.readChunk(maskSize + 4);
-
-              case 4:
-                if (!(maskSize <= 0)) {
-                  _context2.next = 6;
-                  break;
-                }
-
-                return _context2.abrupt('return');
-
-              case 6:
-
-                this._parseLayers();
-                this._parseGlobalMask();
-
-                this.layers.reverse();
-
-                this.file.seek(finish);
-
-              case 10:
-              case 'end':
-                return _context2.stop();
-            }
-          }
-        }, _callee2, this);
-      }));
-
-      function parse() {
-        return _ref2.apply(this, arguments);
+        this.layers.push(layer);
       }
 
-      return parse;
-    }()
-  }, {
-    key: '_parseLayers',
-    value: function _parseLayers() {
-      var layerInfoSize = (0, _util.pad2)(this.file.readInt());
-
-      if (layerInfoSize > 0) {
-        var layerCount = this.file.readShort();
-
-        if (layerCount < 0) {
-          layerCount = Math.abs(layerCount);
-          this.mergedAlpha = true;
-        }
-
-        var layer = void 0;
-        for (var i = 0; i < layerCount; i++) {
-          layer = new _layer2.default(this.file, this.header);
-          layer.parse();
-
-          this.layers.push(layer);
-        }
-
-        // Channel images come after all of the layer data
-        this.layers.forEach(function (layer) {
-          return layer.parseChannelImage();
-        });
-      }
+      // Channel images come after all of the layer data
+      this.layers.forEach(layer => layer.parseChannelImage());
     }
-  }, {
-    key: '_parseGlobalMask',
-    value: function _parseGlobalMask() {
-      var file = this.file;
+  }
 
-      var length = file.readInt();
-      if (length <= 0) return;
+  _parseGlobalMask() {
+    const { file } = this;
+    const length = file.readInt();
+    if (length <= 0) return;
 
-      var maskEnd = file.tell() + length;
+    const maskEnd = file.tell() + length;
 
-      var overlayColorSpace = file.readShort();
-      var colorComponents = [file.readShort() >> 8, file.readShort() >> 8, file.readShort() >> 8, file.readShort() >> 8];
+    const overlayColorSpace = file.readShort();
+    const colorComponents = [file.readShort() >> 8, file.readShort() >> 8, file.readShort() >> 8, file.readShort() >> 8];
 
-      var opacity = file.readShort() / 16.0;
-      var kind = file.readByte();
+    const opacity = file.readShort() / 16.0;
+    const kind = file.readByte();
 
-      this.globalMask = {
-        overlayColorSpace: overlayColorSpace,
-        colorComponents: colorComponents,
-        opacity: opacity,
-        kind: kind
-      };
+    this.globalMask = {
+      overlayColorSpace,
+      colorComponents,
+      opacity,
+      kind
+    };
 
-      file.seek(maskEnd);
-    }
-  }]);
-
-  return LayerMask;
-}();
-
+    file.seek(maskEnd);
+  }
+}
 exports.default = LayerMask;
 
 /***/ }),
@@ -8541,8 +7965,6 @@ exports.default = LayerMask;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _lazy_execute = __webpack_require__(/*! ./lazy_execute */ 13);
 
@@ -8578,12 +8000,9 @@ var _info2 = _interopRequireDefault(_info);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+class Layer {
 
-var Layer = function () {
-  function Layer(file, header) {
-    _classCallCheck(this, Layer);
-
+  constructor(file, header) {
     Object.defineProperty(this, 'mask', {
       enumerable: true,
       writable: true,
@@ -8629,7 +8048,7 @@ var Layer = function () {
     this.header = header;
 
     Object.defineProperty(this, 'name', {
-      get: function get() {
+      get: function () {
         if (this.adjustments.name) {
           return this.adjustments.name.data;
         } else {
@@ -8639,53 +8058,44 @@ var Layer = function () {
     });
   }
 
-  _createClass(Layer, [{
-    key: 'parse',
-    value: function parse() {
-      (0, _position_channels2.default)(this);
-      (0, _blend_modes2.default)(this);
+  parse() {
+    (0, _position_channels2.default)(this);
+    (0, _blend_modes2.default)(this);
 
-      var extraLen = this.file.readInt();
-      this.layerEnd = this.file.tell() + extraLen;
+    const extraLen = this.file.readInt();
+    this.layerEnd = this.file.tell() + extraLen;
 
-      (0, _mask_data2.default)(this);
-      (0, _blending_ranges2.default)(this);
-      (0, _legacy_name2.default)(this);
-      (0, _info2.default)(this);
-    }
-  }, {
-    key: 'parseChannelImage',
-    value: function parseChannelImage() {
-      var image = new _channel_image2.default(this);
-      this.image = new _lazy_execute2.default(image, this.file).now('skip').later('parse').get();
-    }
-  }, {
-    key: 'isFolder',
-    value: function isFolder() {
-      if (this.adjustments.sectionDivider) {
-        return this.adjustments.sectionDivider.isFolder;
-      } else if (this.adjustments.nestedSectionDivider) {
-        return this.adjustments.nestedSectionDivider.isFolder;
-      } else {
-        return this.name === "<Layer group>";
-      }
-    }
-  }, {
-    key: 'isFolderEnd',
-    value: function isFolderEnd() {
-      if (this.adjustments.sectionDivider) {
-        return this.adjustments.sectionDivider.isHidden;
-      } else if (this.adjustments.nestedSectionDivider) {
-        return this.adjustments.nestedSectionDivider.isHidden;
-      } else {
-        return this.name === "</Layer group>";
-      }
-    }
-  }]);
+    (0, _mask_data2.default)(this);
+    (0, _blending_ranges2.default)(this);
+    (0, _legacy_name2.default)(this);
+    (0, _info2.default)(this);
+  }
 
-  return Layer;
-}();
+  parseChannelImage() {
+    const image = new _channel_image2.default(this);
+    this.image = new _lazy_execute2.default(image, this.file).now('skip').later('parse').get();
+  }
 
+  isFolder() {
+    if (this.adjustments.sectionDivider) {
+      return this.adjustments.sectionDivider.isFolder;
+    } else if (this.adjustments.nestedSectionDivider) {
+      return this.adjustments.nestedSectionDivider.isFolder;
+    } else {
+      return this.name === "<Layer group>";
+    }
+  }
+
+  isFolderEnd() {
+    if (this.adjustments.sectionDivider) {
+      return this.adjustments.sectionDivider.isHidden;
+    } else if (this.adjustments.nestedSectionDivider) {
+      return this.adjustments.nestedSectionDivider.isHidden;
+    } else {
+      return this.name === "</Layer group>";
+    }
+  }
+}
 exports.default = Layer;
 
 /***/ }),
@@ -8703,39 +8113,23 @@ exports.default = Layer;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var ChannelImage = function () {
-  function ChannelImage(layer) {
-    _classCallCheck(this, ChannelImage);
-
+class ChannelImage {
+  constructor(layer) {
     this.layer = layer;
     this.file = layer.file;
     this.header = layer.header;
   }
 
-  _createClass(ChannelImage, [{
-    key: "skip",
-    value: function skip() {
-      var _this = this;
+  skip() {
+    this.layer.channelsInfo.forEach(channel => {
+      this.file.seek(channel.length, true);
+    });
+  }
 
-      this.layer.channelsInfo.forEach(function (channel) {
-        _this.file.seek(channel.length, true);
-      });
-    }
-  }, {
-    key: "parse",
-    value: function parse() {
-      // TODO
-    }
-  }]);
-
-  return ChannelImage;
-}();
-
+  parse() {
+    // TODO
+  }
+}
 exports.default = ChannelImage;
 
 /***/ }),
@@ -8755,8 +8149,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = parsePositionAndChannels;
 function parsePositionAndChannels(layer) {
-  var file = layer.file;
-
+  const { file } = layer;
 
   layer.top = file.readInt();
   layer.left = file.readInt();
@@ -8767,13 +8160,12 @@ function parsePositionAndChannels(layer) {
   layer.rows = layer.height = layer.bottom - layer.top;
   layer.cols = layer.width = layer.right - layer.left;
 
-  var id = void 0,
-      length = void 0;
+  let id, length;
   for (var i = 0; i < layer.channels; i++) {
     id = file.readShort();
     length = file.readInt();
 
-    layer.channelsInfo.push({ id: id, length: length });
+    layer.channelsInfo.push({ id, length });
   }
 }
 
@@ -8801,9 +8193,8 @@ var _blend_mode2 = _interopRequireDefault(_blend_mode);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function parseBlendModes(layer) {
-  var file = layer.file;
-
-  var blendMode = new _blend_mode2.default(file);
+  const { file } = layer;
+  const blendMode = new _blend_mode2.default(file);
   blendMode.parse();
 
   layer.opacity = blendMode.opacity;
@@ -8828,15 +8219,9 @@ function parseBlendModes(layer) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+class BlendMode {
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var BlendMode = function () {
-  function BlendMode(file) {
-    _classCallCheck(this, BlendMode);
-
+  constructor(file) {
     Object.defineProperty(this, 'blendKey', {
       enumerable: true,
       writable: true,
@@ -8876,35 +8261,28 @@ var BlendMode = function () {
     this.file = file;
   }
 
-  _createClass(BlendMode, [{
-    key: 'parse',
-    value: function parse() {
-      var file = this.file;
+  parse() {
+    const { file } = this;
+    file.seek(4, true);
 
-      file.seek(4, true);
+    this.blendKey = file.readString(4).trim();
+    this.opacity = file.readByte();
+    this.clipping = file.readByte();
+    this.flags = file.readByte();
 
-      this.blendKey = file.readString(4).trim();
-      this.opacity = file.readByte();
-      this.clipping = file.readByte();
-      this.flags = file.readByte();
+    this.mode = BlendMode.BLEND_MODES[this.blendKey];
+    this.clipped = this.clipping === 1;
 
-      this.mode = BlendMode.BLEND_MODES[this.blendKey];
-      this.clipped = this.clipping === 1;
+    this.visible = !((this.flags & 0x01 << 1) > 0);
 
-      this.visible = !((this.flags & 0x01 << 1) > 0);
+    file.seek(1, true);
+  }
 
-      file.seek(1, true);
-    }
-  }, {
-    key: 'opacityPercentage',
-    value: function opacityPercentage() {
-      return this.opacity * 100 / 255;
-    }
-  }]);
-
-  return BlendMode;
-}();
-
+  opacityPercentage() {
+    return this.opacity * 100 / 255;
+  }
+}
+exports.default = BlendMode;
 Object.defineProperty(BlendMode, 'BLEND_MODES', {
   enumerable: true,
   writable: true,
@@ -8939,7 +8317,6 @@ Object.defineProperty(BlendMode, 'BLEND_MODES', {
     fdiv: 'divide'
   }
 });
-exports.default = BlendMode;
 
 /***/ }),
 /* 83 */
@@ -8965,7 +8342,7 @@ var _mask2 = _interopRequireDefault(_mask);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function parseMaskData(layer) {
-  var mask = new _mask2.default(layer.file);
+  const mask = new _mask2.default(layer.file);
   mask.parse();
 
   layer.mask = mask;
@@ -8986,15 +8363,9 @@ function parseMaskData(layer) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+class Mask {
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Mask = function () {
-  function Mask(file) {
-    _classCallCheck(this, Mask);
-
+  constructor(file) {
     Object.defineProperty(this, "top", {
       enumerable: true,
       writable: true,
@@ -9019,57 +8390,49 @@ var Mask = function () {
     this.file = file;
   }
 
-  _createClass(Mask, [{
-    key: "parse",
-    value: function parse() {
-      var file = this.file;
+  parse() {
+    const { file } = this;
 
+    this.size = file.readInt();
+    if (this.size === 0) return;
 
-      this.size = file.readInt();
-      if (this.size === 0) return;
+    const maskEnd = file.tell() + this.size;
 
-      var maskEnd = file.tell() + this.size;
+    this.top = file.readInt();
+    this.left = file.readInt();
+    this.bottom = file.readInt();
+    this.right = file.readInt();
 
-      this.top = file.readInt();
-      this.left = file.readInt();
-      this.bottom = file.readInt();
-      this.right = file.readInt();
+    this.width = this.right - this.left;
+    this.height = this.bottom - this.top;
 
-      this.width = this.right - this.left;
-      this.height = this.bottom - this.top;
+    this.defaultColor = file.readByte();
+    this.flags = file.readByte();
 
-      this.defaultColor = file.readByte();
-      this.flags = file.readByte();
+    this.relative = (this.flags & 0x01) > 0;
+    this.disabled = (this.flags & 0x01 << 1) > 0;
+    this.invert = (this.flags & 0x01 << 2) > 0;
 
-      this.relative = (this.flags & 0x01) > 0;
-      this.disabled = (this.flags & 0x01 << 1) > 0;
-      this.invert = (this.flags & 0x01 << 2) > 0;
+    file.seek(maskEnd);
+  }
 
-      file.seek(maskEnd);
-    }
-  }, {
-    key: "export",
-    value: function _export() {
-      if (this.size === 0) return {};
+  export() {
+    if (this.size === 0) return {};
 
-      return {
-        top: this.top,
-        left: this.left,
-        bottom: this.bottom,
-        right: this.right,
-        width: this.width,
-        height: this.height,
-        defaultColor: this.defaultColor,
-        relative: this.relative,
-        disabled: this.disabled,
-        invert: this.invert
-      };
-    }
-  }]);
-
-  return Mask;
-}();
-
+    return {
+      top: this.top,
+      left: this.left,
+      bottom: this.bottom,
+      right: this.right,
+      width: this.width,
+      height: this.height,
+      defaultColor: this.defaultColor,
+      relative: this.relative,
+      disabled: this.disabled,
+      invert: this.invert
+    };
+  }
+}
 exports.default = Mask;
 
 /***/ }),
@@ -9089,9 +8452,8 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = parseBlendingRanges;
 function parseBlendingRanges(layer) {
-  var file = layer.file;
-
-  var length = file.readInt();
+  const { file } = layer;
+  const length = file.readInt();
 
   layer.blendingRanges.grey = {
     source: {
@@ -9104,7 +8466,7 @@ function parseBlendingRanges(layer) {
     }
   };
 
-  var numChannels = (length - 8) / 8;
+  const numChannels = (length - 8) / 8;
 
   layer.blendingRanges.channels = [];
   for (var i = 0; i < numChannels; i++) {
@@ -9141,9 +8503,8 @@ exports.default = parseLegacyLayerName;
 var _util = __webpack_require__(/*! ../util */ 9);
 
 function parseLegacyLayerName(layer) {
-  var file = layer.file;
-
-  var len = (0, _util.pad4)(file.readByte());
+  const { file } = layer;
+  const len = (0, _util.pad4)(file.readByte());
   layer.legacyName = file.readString(len);
 }
 
@@ -9204,18 +8565,13 @@ var _unicode_name2 = _interopRequireDefault(_unicode_name);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var LAYER_INFO = [_artboard2.default, _blend_clipping_elements2.default, _blend_interior_elements2.default, _layer_id2.default, _nested_section_divider2.default, _section_divider2.default, _typetool2.default, _unicode_name2.default];
+const LAYER_INFO = [_artboard2.default, _blend_clipping_elements2.default, _blend_interior_elements2.default, _layer_id2.default, _nested_section_divider2.default, _section_divider2.default, _typetool2.default, _unicode_name2.default];
 
 function parseLayerInfo(layer) {
-  var file = layer.file;
+  const { file } = layer;
 
-
-  var key = void 0,
-      length = void 0,
-      pos = void 0,
-      keyParseable = void 0;
-  var infoClass = void 0,
-      info = void 0;
+  let key, length, pos, keyParseable;
+  let infoClass, info;
   while (file.tell() < layer.layerEnd) {
     // We can ignore the sig, or alternatively do a sanity check here.
     file.seek(4, true);
@@ -9261,8 +8617,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _base = __webpack_require__(/*! ./base */ 6);
 
 var _base2 = _interopRequireDefault(_base);
@@ -9273,55 +8627,33 @@ var _descriptor2 = _interopRequireDefault(_descriptor);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var Artboard = function (_LayerInfo) {
-  _inherits(Artboard, _LayerInfo);
-
-  function Artboard() {
-    _classCallCheck(this, Artboard);
-
-    return _possibleConstructorReturn(this, (Artboard.__proto__ || Object.getPrototypeOf(Artboard)).apply(this, arguments));
+class Artboard extends _base2.default {
+  static shouldParse(key) {
+    return key === 'artb';
   }
 
-  _createClass(Artboard, [{
-    key: 'parse',
-    value: function parse() {
-      this.file.seek(4, true);
-      this.data = new _descriptor2.default(this.file).parse();
-    }
-  }, {
-    key: 'export',
-    value: function _export() {
-      return {
-        coords: {
-          left: this.data.artboardRect['Left'],
-          top: this.data.artboardRect['Top '],
-          right: this.data.artboardRect['Rght'],
-          bottom: this.data.artboardRect['Btom']
-        }
-      };
-    }
-  }], [{
-    key: 'shouldParse',
-    value: function shouldParse(key) {
-      return key === 'artb';
-    }
-  }]);
+  parse() {
+    this.file.seek(4, true);
+    this.data = new _descriptor2.default(this.file).parse();
+  }
 
-  return Artboard;
-}(_base2.default);
-
+  export() {
+    return {
+      coords: {
+        left: this.data.artboardRect['Left'],
+        top: this.data.artboardRect['Top '],
+        right: this.data.artboardRect['Rght'],
+        bottom: this.data.artboardRect['Btom']
+      }
+    };
+  }
+}
+exports.default = Artboard;
 Object.defineProperty(Artboard, 'name', {
   enumerable: true,
   writable: true,
   value: "artboard"
 });
-exports.default = Artboard;
 
 /***/ }),
 /* 89 */
@@ -9339,51 +8671,28 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _base = __webpack_require__(/*! ./base */ 6);
 
 var _base2 = _interopRequireDefault(_base);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var BlendClippingElements = function (_LayerInfo) {
-  _inherits(BlendClippingElements, _LayerInfo);
-
-  function BlendClippingElements() {
-    _classCallCheck(this, BlendClippingElements);
-
-    return _possibleConstructorReturn(this, (BlendClippingElements.__proto__ || Object.getPrototypeOf(BlendClippingElements)).apply(this, arguments));
+class BlendClippingElements extends _base2.default {
+  static shouldParse(key) {
+    return key === 'clbl';
   }
 
-  _createClass(BlendClippingElements, [{
-    key: 'parse',
-    value: function parse() {
-      this.enabled = this.file.readBoolean();
-      this.file.seek(3, true);
-    }
-  }], [{
-    key: 'shouldParse',
-    value: function shouldParse(key) {
-      return key === 'clbl';
-    }
-  }]);
-
-  return BlendClippingElements;
-}(_base2.default);
-
+  parse() {
+    this.enabled = this.file.readBoolean();
+    this.file.seek(3, true);
+  }
+}
+exports.default = BlendClippingElements;
 Object.defineProperty(BlendClippingElements, 'name', {
   enumerable: true,
   writable: true,
   value: "blendClippingElements"
 });
-exports.default = BlendClippingElements;
 
 /***/ }),
 /* 90 */
@@ -9401,51 +8710,28 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _base = __webpack_require__(/*! ./base */ 6);
 
 var _base2 = _interopRequireDefault(_base);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var BlendInteriorElements = function (_LayerInfo) {
-  _inherits(BlendInteriorElements, _LayerInfo);
-
-  function BlendInteriorElements() {
-    _classCallCheck(this, BlendInteriorElements);
-
-    return _possibleConstructorReturn(this, (BlendInteriorElements.__proto__ || Object.getPrototypeOf(BlendInteriorElements)).apply(this, arguments));
+class BlendInteriorElements extends _base2.default {
+  static shouldParse(key) {
+    return key === 'infx';
   }
 
-  _createClass(BlendInteriorElements, [{
-    key: 'parse',
-    value: function parse() {
-      this.enabled = this.file.readBoolean();
-      this.file.seek(3, true);
-    }
-  }], [{
-    key: 'shouldParse',
-    value: function shouldParse(key) {
-      return key === 'infx';
-    }
-  }]);
-
-  return BlendInteriorElements;
-}(_base2.default);
-
+  parse() {
+    this.enabled = this.file.readBoolean();
+    this.file.seek(3, true);
+  }
+}
+exports.default = BlendInteriorElements;
 Object.defineProperty(BlendInteriorElements, 'name', {
   enumerable: true,
   writable: true,
   value: "blendInteriorElements"
 });
-exports.default = BlendInteriorElements;
 
 /***/ }),
 /* 91 */
@@ -9463,50 +8749,27 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _base = __webpack_require__(/*! ./base */ 6);
 
 var _base2 = _interopRequireDefault(_base);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var LayerId = function (_LayerInfo) {
-  _inherits(LayerId, _LayerInfo);
-
-  function LayerId() {
-    _classCallCheck(this, LayerId);
-
-    return _possibleConstructorReturn(this, (LayerId.__proto__ || Object.getPrototypeOf(LayerId)).apply(this, arguments));
+class LayerId extends _base2.default {
+  static shouldParse(key) {
+    return key === 'lyid';
   }
 
-  _createClass(LayerId, [{
-    key: 'parse',
-    value: function parse() {
-      this.id = this.file.readInt();
-    }
-  }], [{
-    key: 'shouldParse',
-    value: function shouldParse(key) {
-      return key === 'lyid';
-    }
-  }]);
-
-  return LayerId;
-}(_base2.default);
-
+  parse() {
+    this.id = this.file.readInt();
+  }
+}
+exports.default = LayerId;
 Object.defineProperty(LayerId, 'name', {
   enumerable: true,
   writable: true,
   value: 'layerId'
 });
-exports.default = LayerId;
 
 /***/ }),
 /* 92 */
@@ -9524,76 +8787,51 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _base = __webpack_require__(/*! ./base */ 6);
 
 var _base2 = _interopRequireDefault(_base);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+class NestedSectionDivider extends _base2.default {
+  constructor(...args) {
+    var _temp;
 
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var NestedSectionDivider = function (_LayerInfo) {
-  _inherits(NestedSectionDivider, _LayerInfo);
-
-  function NestedSectionDivider() {
-    var _ref;
-
-    var _temp, _this, _ret;
-
-    _classCallCheck(this, NestedSectionDivider);
-
-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-
-    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = NestedSectionDivider.__proto__ || Object.getPrototypeOf(NestedSectionDivider)).call.apply(_ref, [this].concat(args))), _this), Object.defineProperty(_this, "isFolder", {
+    return _temp = super(...args), Object.defineProperty(this, "isFolder", {
       enumerable: true,
       writable: true,
       value: false
-    }), Object.defineProperty(_this, "isHidden", {
+    }), Object.defineProperty(this, "isHidden", {
       enumerable: true,
       writable: true,
       value: false
-    }), _temp), _possibleConstructorReturn(_this, _ret);
+    }), _temp;
   }
 
-  _createClass(NestedSectionDivider, [{
-    key: "parse",
-    value: function parse() {
-      var code = this.file.readInt();
+  static shouldParse(key) {
+    return key === "lsdk";
+  }
 
-      switch (code) {
-        case 1:
-        case 2:
-          this.isFolder = true;
-          break;
-        case 3:
-          this.isHidden = true;
-          break;
-      }
+  parse() {
+    const code = this.file.readInt();
+
+    switch (code) {
+      case 1:
+      case 2:
+        this.isFolder = true;
+        break;
+      case 3:
+        this.isHidden = true;
+        break;
     }
-  }], [{
-    key: "shouldParse",
-    value: function shouldParse(key) {
-      return key === "lsdk";
-    }
-  }]);
-
-  return NestedSectionDivider;
-}(_base2.default);
-
+  }
+}
+exports.default = NestedSectionDivider;
 Object.defineProperty(NestedSectionDivider, "name", {
   enumerable: true,
   writable: true,
   value: "nestedSectionDivider"
 });
-exports.default = NestedSectionDivider;
 
 /***/ }),
 /* 93 */
@@ -9611,100 +8849,75 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _base = __webpack_require__(/*! ./base */ 6);
 
 var _base2 = _interopRequireDefault(_base);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+const SECTION_DIVIDER_TYPES = ['other', 'open folder', 'closed folder', 'bounding section divider'];
 
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+class SectionDivider extends _base2.default {
+  constructor(...args) {
+    var _temp;
 
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var SECTION_DIVIDER_TYPES = ['other', 'open folder', 'closed folder', 'bounding section divider'];
-
-var SectionDivider = function (_LayerInfo) {
-  _inherits(SectionDivider, _LayerInfo);
-
-  function SectionDivider() {
-    var _ref;
-
-    var _temp, _this, _ret;
-
-    _classCallCheck(this, SectionDivider);
-
-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-
-    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = SectionDivider.__proto__ || Object.getPrototypeOf(SectionDivider)).call.apply(_ref, [this].concat(args))), _this), Object.defineProperty(_this, 'isFolder', {
+    return _temp = super(...args), Object.defineProperty(this, 'isFolder', {
       enumerable: true,
       writable: true,
       value: false
-    }), Object.defineProperty(_this, 'isHidden', {
+    }), Object.defineProperty(this, 'isHidden', {
       enumerable: true,
       writable: true,
       value: false
-    }), Object.defineProperty(_this, 'layerType', {
+    }), Object.defineProperty(this, 'layerType', {
       enumerable: true,
       writable: true,
       value: null
-    }), Object.defineProperty(_this, 'blendMode', {
+    }), Object.defineProperty(this, 'blendMode', {
       enumerable: true,
       writable: true,
       value: null
-    }), Object.defineProperty(_this, 'subType', {
+    }), Object.defineProperty(this, 'subType', {
       enumerable: true,
       writable: true,
       value: null
-    }), _temp), _possibleConstructorReturn(_this, _ret);
+    }), _temp;
   }
 
-  _createClass(SectionDivider, [{
-    key: 'parse',
-    value: function parse() {
-      var code = this.file.readInt();
-      this.layerType = SECTION_DIVIDER_TYPES[code];
+  static shouldParse(key) {
+    return key === 'lsct';
+  }
 
-      switch (code) {
-        case 1:
-        case 2:
-          this.isFolder = true;
-          break;
-        case 3:
-          this.isHidden = true;
-          break;
-      }
+  parse() {
+    const code = this.file.readInt();
+    this.layerType = SECTION_DIVIDER_TYPES[code];
 
-      if (this.length < 12) return;
-
-      this.file.seek(4, true);
-      this.blendMode = this.file.readString(4);
-
-      if (this.length < 16) return;
-
-      this.subType = this.file.readInt() === 0 ? 'normal' : 'scene group';
+    switch (code) {
+      case 1:
+      case 2:
+        this.isFolder = true;
+        break;
+      case 3:
+        this.isHidden = true;
+        break;
     }
-  }], [{
-    key: 'shouldParse',
-    value: function shouldParse(key) {
-      return key === 'lsct';
-    }
-  }]);
 
-  return SectionDivider;
-}(_base2.default);
+    if (this.length < 12) return;
 
+    this.file.seek(4, true);
+    this.blendMode = this.file.readString(4);
+
+    if (this.length < 16) return;
+
+    this.subType = this.file.readInt() === 0 ? 'normal' : 'scene group';
+  }
+}
+exports.default = SectionDivider;
 Object.defineProperty(SectionDivider, 'name', {
   enumerable: true,
   writable: true,
   value: "sectionDivider"
 });
-exports.default = SectionDivider;
 
 /***/ }),
 /* 94 */
@@ -9722,8 +8935,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _parseEngineData = __webpack_require__(/*! parse-engine-data */ 95);
 
 var _parseEngineData2 = _interopRequireDefault(_parseEngineData);
@@ -9738,268 +8949,213 @@ var _descriptor2 = _interopRequireDefault(_descriptor);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+const TRANSFORM_VALUE = ['xx', 'xy', 'yx', 'yy', 'tx', 'ty'];
+const COORDS_VALUE = ['left', 'top', 'right', 'bottom'];
+const ALIGNMENTS = ['left', 'right', 'center', 'justify'];
 
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+class TypeTool extends _base2.default {
+  constructor(...args) {
+    var _temp;
 
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var TRANSFORM_VALUE = ['xx', 'xy', 'yx', 'yy', 'tx', 'ty'];
-var COORDS_VALUE = ['left', 'top', 'right', 'bottom'];
-var ALIGNMENTS = ['left', 'right', 'center', 'justify'];
-
-var TypeTool = function (_LayerInfo) {
-  _inherits(TypeTool, _LayerInfo);
-
-  function TypeTool() {
-    var _ref;
-
-    var _temp, _this, _ret;
-
-    _classCallCheck(this, TypeTool);
-
-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-
-    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = TypeTool.__proto__ || Object.getPrototypeOf(TypeTool)).call.apply(_ref, [this].concat(args))), _this), Object.defineProperty(_this, 'version', {
+    return _temp = super(...args), Object.defineProperty(this, 'version', {
       enumerable: true,
       writable: true,
       value: null
-    }), Object.defineProperty(_this, 'transform', {
+    }), Object.defineProperty(this, 'transform', {
       enumerable: true,
       writable: true,
       value: {}
-    }), Object.defineProperty(_this, 'textVersion', {
+    }), Object.defineProperty(this, 'textVersion', {
       enumerable: true,
       writable: true,
       value: null
-    }), Object.defineProperty(_this, 'textDescriptorVersion', {
+    }), Object.defineProperty(this, 'textDescriptorVersion', {
       enumerable: true,
       writable: true,
       value: null
-    }), Object.defineProperty(_this, 'textData', {
+    }), Object.defineProperty(this, 'textData', {
       enumerable: true,
       writable: true,
       value: null
-    }), Object.defineProperty(_this, 'engineData', {
+    }), Object.defineProperty(this, 'engineData', {
       enumerable: true,
       writable: true,
       value: null
-    }), Object.defineProperty(_this, 'textValue', {
+    }), Object.defineProperty(this, 'textValue', {
       enumerable: true,
       writable: true,
       value: null
-    }), Object.defineProperty(_this, 'warpVersion', {
+    }), Object.defineProperty(this, 'warpVersion', {
       enumerable: true,
       writable: true,
       value: null
-    }), Object.defineProperty(_this, 'warpDescriptorVersion', {
+    }), Object.defineProperty(this, 'warpDescriptorVersion', {
       enumerable: true,
       writable: true,
       value: null
-    }), Object.defineProperty(_this, 'warpData', {
+    }), Object.defineProperty(this, 'warpData', {
       enumerable: true,
       writable: true,
       value: null
-    }), Object.defineProperty(_this, 'coords', {
+    }), Object.defineProperty(this, 'coords', {
       enumerable: true,
       writable: true,
       value: {}
-    }), _temp), _possibleConstructorReturn(_this, _ret);
+    }), _temp;
   }
 
-  _createClass(TypeTool, [{
-    key: 'parse',
-    value: function parse() {
-      var file = this.file;
+  static shouldParse(key) {
+    return key === "TySh";
+  }
 
+  parse() {
+    const { file } = this;
 
-      this.version = file.readShort();
+    this.version = file.readShort();
 
-      this._parseTransformInfo();
+    this._parseTransformInfo();
 
-      this.textVersion = file.readShort();
-      this.textDescriptorVersion = file.readInt();
+    this.textVersion = file.readShort();
+    this.textDescriptorVersion = file.readInt();
 
-      this.textData = new _descriptor2.default(file).parse();
-      this.textValue = this.textData['Txt '];
-      this.engineData = (0, _parseEngineData2.default)(this.textData.EngineData);
+    this.textData = new _descriptor2.default(file).parse();
+    this.textValue = this.textData['Txt '];
+    this.engineData = (0, _parseEngineData2.default)(this.textData.EngineData);
 
-      this.warpVersion = file.readShort();
-      this.warpDescriptorVersion = file.readInt();
-      this.warpData = new _descriptor2.default(file).parse();
+    this.warpVersion = file.readShort();
+    this.warpDescriptorVersion = file.readInt();
+    this.warpData = new _descriptor2.default(file).parse();
 
-      this._parseCoordinates();
-    }
-  }, {
-    key: '_parseTransformInfo',
-    value: function _parseTransformInfo() {
-      for (var i = 0; i < TRANSFORM_VALUE.length; i++) {
-        this.transform[TRANSFORM_VALUE[i]] = this.file.readDouble();
-      }
-    }
-  }, {
-    key: '_parseCoordinates',
-    value: function _parseCoordinates() {
-      for (var i = 0; i < COORDS_VALUE.length; i++) {
-        this.coords[COORDS_VALUE[i]] = this.file.readInt();
-      }
-    }
-  }, {
-    key: 'fonts',
-    value: function fonts() {
-      if (!this.engineData) return [];
-      return this.engineData.ResourceDict.FontSet.map(function (f) {
-        return f.Name;
-      });
-    }
-  }, {
-    key: 'lengthArray',
-    value: function lengthArray() {
-      var arr = this.engineData.EngineDict.StyleRun.RunLengthArray;
-      var sum = arr.reduce(function (m, o) {
-        return m + o;
-      });
+    this._parseCoordinates();
+  }
 
-      if (sum - this.textValue.length === 1) {
-        arr[arr.length - 1] = arr[arr.length - 1] - 1;
-      }
+  _parseTransformInfo() {
+    for (var i = 0; i < TRANSFORM_VALUE.length; i++) {
+      this.transform[TRANSFORM_VALUE[i]] = this.file.readDouble();
+    }
+  }
 
-      return arr;
+  _parseCoordinates() {
+    for (var i = 0; i < COORDS_VALUE.length; i++) {
+      this.coords[COORDS_VALUE[i]] = this.file.readInt();
     }
-  }, {
-    key: 'stylesheetData',
-    value: function stylesheetData() {
-      return this.engineData.EngineDict.StyleRun.RunArray.map(function (r) {
-        return r.StyleSheet.StyleSheetData;
-      });
+  }
+
+  fonts() {
+    if (!this.engineData) return [];
+    return this.engineData.ResourceDict.FontSet.map(f => f.Name);
+  }
+
+  lengthArray() {
+    const arr = this.engineData.EngineDict.StyleRun.RunLengthArray;
+    const sum = arr.reduce((m, o) => m + o);
+
+    if (sum - this.textValue.length === 1) {
+      arr[arr.length - 1] = arr[arr.length - 1] - 1;
     }
-  }, {
-    key: 'fontStyles',
-    value: function fontStyles() {
-      return this.stylesheetData().map(function (f) {
-        return f.FauxItalic ? 'italic' : 'normal';
-      });
+
+    return arr;
+  }
+
+  stylesheetData() {
+    return this.engineData.EngineDict.StyleRun.RunArray.map(r => r.StyleSheet.StyleSheetData);
+  }
+
+  fontStyles() {
+    return this.stylesheetData().map(f => f.FauxItalic ? 'italic' : 'normal');
+  }
+
+  fontWeights() {
+    return this.stylesheetData().map(f => f.FauxBold ? 'bold' : 'normal');
+  }
+
+  textDecoration() {
+    return this.stylesheetData().map(f => f.Underline ? 'underline' : 'none');
+  }
+
+  leading() {
+    return this.stylesheetData().map(f => f.Leading || 'auto');
+  }
+
+  sizes() {
+    if (!this.engineData && !this.styles().FontSize) return [];
+    return this.styles().FontSize;
+  }
+
+  alignment() {
+    if (!this.engineData) return [];
+    return this.engineData.EngineDict.ParagraphRun.RunArray.map(s => {
+      return ALIGNMENTS[Math.min(parseInt(s.ParagraphSheet.Properties.Justification, 10), 3)];
+    });
+  }
+
+  colors() {
+    if (!this.engineData || !this.styles().FillColor) {
+      return [[0, 0, 0, 255]];
     }
-  }, {
-    key: 'fontWeights',
-    value: function fontWeights() {
-      return this.stylesheetData().map(function (f) {
-        return f.FauxBold ? 'bold' : 'normal';
-      });
-    }
-  }, {
-    key: 'textDecoration',
-    value: function textDecoration() {
-      return this.stylesheetData().map(function (f) {
-        return f.Underline ? 'underline' : 'none';
-      });
-    }
-  }, {
-    key: 'leading',
-    value: function leading() {
-      return this.stylesheetData().map(function (f) {
-        return f.Leading || 'auto';
-      });
-    }
-  }, {
-    key: 'sizes',
-    value: function sizes() {
-      if (!this.engineData && !this.styles().FontSize) return [];
-      return this.styles().FontSize;
-    }
-  }, {
-    key: 'alignment',
-    value: function alignment() {
-      if (!this.engineData) return [];
-      return this.engineData.EngineDict.ParagraphRun.RunArray.map(function (s) {
-        return ALIGNMENTS[Math.min(parseInt(s.ParagraphSheet.Properties.Justification, 10), 3)];
-      });
-    }
-  }, {
-    key: 'colors',
-    value: function colors() {
-      if (!this.engineData || !this.styles().FillColor) {
-        return [[0, 0, 0, 255]];
+
+    let values;
+    return this.styles().FillColor.map(s => {
+      values = s.Values.map(v => Math.round(v * 255));
+      values.push(values.shift()); // Change ARGB -> RGBA for consistency
+      return values;
+    });
+  }
+
+  styles() {
+    if (!this.engineData) return {};
+    return this.stylesheetData().reduce((m, o) => {
+      for (var k in o) {
+        if (!m[k]) m[k] = [];
+        m[k].push(o[k]);
       }
 
-      var values = void 0;
-      return this.styles().FillColor.map(function (s) {
-        values = s.Values.map(function (v) {
-          return Math.round(v * 255);
-        });
-        values.push(values.shift()); // Change ARGB -> RGBA for consistency
-        return values;
-      });
-    }
-  }, {
-    key: 'styles',
-    value: function styles() {
-      if (!this.engineData) return {};
-      return this.stylesheetData().reduce(function (m, o) {
-        for (var k in o) {
-          if (!m[k]) m[k] = [];
-          m[k].push(o[k]);
-        }
+      return m;
+    }, {});
+  }
 
-        return m;
-      }, {});
-    }
-  }, {
-    key: 'toCSS',
-    value: function toCSS() {
-      var definition = {
-        'font-family': this.fonts().join(', '),
-        'font-size': this.sizes()[0] + 'pt',
-        'color': 'rgba(' + this.colors()[0].join(', ') + ')',
-        'text-align': this.alignment()[0]
-      };
+  toCSS() {
+    const definition = {
+      'font-family': this.fonts().join(', '),
+      'font-size': `${this.sizes()[0]}pt`,
+      'color': `rgba(${this.colors()[0].join(', ')})`,
+      'text-align': this.alignment()[0]
+    };
 
-      var css = [];
-      for (var k in definition) {
-        if (!definition[k]) continue;
-        css.push(k + ': ' + definition[k] + ';');
-      }
-
-      return css.join("\n");
+    let css = [];
+    for (var k in definition) {
+      if (!definition[k]) continue;
+      css.push(`${k}: ${definition[k]};`);
     }
-  }, {
-    key: 'export',
-    value: function _export() {
-      return {
-        value: this.textValue,
-        font: {
-          lengthArray: this.lengthArray(),
-          styles: this.styles(),
-          weights: this.fontWeights(),
-          names: this.fonts(),
-          sizes: this.sizes(),
-          colors: this.colors(),
-          alignment: this.alignment(),
-          textDecoration: this.textDecoration(),
-          leading: this.leading()
-        },
-        coords: this.coords,
-        transform: this.transform
-      };
-    }
-  }], [{
-    key: 'shouldParse',
-    value: function shouldParse(key) {
-      return key === "TySh";
-    }
-  }]);
 
-  return TypeTool;
-}(_base2.default);
+    return css.join("\n");
+  }
 
+  export() {
+    return {
+      value: this.textValue,
+      font: {
+        lengthArray: this.lengthArray(),
+        styles: this.styles(),
+        weights: this.fontWeights(),
+        names: this.fonts(),
+        sizes: this.sizes(),
+        colors: this.colors(),
+        alignment: this.alignment(),
+        textDecoration: this.textDecoration(),
+        leading: this.leading()
+      },
+      coords: this.coords,
+      transform: this.transform
+    };
+  }
+}
+exports.default = TypeTool;
 Object.defineProperty(TypeTool, 'name', {
   enumerable: true,
   writable: true,
   value: "typeTool"
 });
-exports.default = TypeTool;
 
 /***/ }),
 /* 95 */
@@ -10231,53 +9387,30 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _base = __webpack_require__(/*! ./base */ 6);
 
 var _base2 = _interopRequireDefault(_base);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var UnicodeName = function (_LayerInfo) {
-  _inherits(UnicodeName, _LayerInfo);
-
-  function UnicodeName() {
-    _classCallCheck(this, UnicodeName);
-
-    return _possibleConstructorReturn(this, (UnicodeName.__proto__ || Object.getPrototypeOf(UnicodeName)).apply(this, arguments));
+class UnicodeName extends _base2.default {
+  static shouldParse(key) {
+    return key === 'luni';
   }
 
-  _createClass(UnicodeName, [{
-    key: 'parse',
-    value: function parse() {
-      var pos = this.file.tell();
-      this.data = this.file.readUnicodeString();
+  parse() {
+    const pos = this.file.tell();
+    this.data = this.file.readUnicodeString();
 
-      this.file.seek(pos + this.length);
-    }
-  }], [{
-    key: 'shouldParse',
-    value: function shouldParse(key) {
-      return key === 'luni';
-    }
-  }]);
-
-  return UnicodeName;
-}(_base2.default);
-
+    this.file.seek(pos + this.length);
+  }
+}
+exports.default = UnicodeName;
 Object.defineProperty(UnicodeName, 'name', {
   enumerable: true,
   writable: true,
   value: "name"
 });
-exports.default = UnicodeName;
 
 /***/ }),
 /* 97 */
@@ -10295,8 +9428,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _stream = __webpack_require__(/*! stream */ 7);
 
 var _rgb = __webpack_require__(/*! ./image/mode/rgb */ 98);
@@ -10309,14 +9440,9 @@ var _raw = __webpack_require__(/*! ./image/format/raw */ 102);
 
 var _rle = __webpack_require__(/*! ./image/format/rle */ 103);
 
-function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+class Image {
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Image = function () {
-  function Image(file, header) {
-    _classCallCheck(this, Image);
-
+  constructor(file, header) {
     Object.defineProperty(this, 'pixelData', {
       enumerable: true,
       writable: true,
@@ -10347,150 +9473,90 @@ var Image = function () {
     if (this.header.depth === 16) this.numPixels *= 2;
   }
 
-  _createClass(Image, [{
-    key: 'parse',
-    value: function () {
-      var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
-        return regeneratorRuntime.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                this._calculateLength();
-                this._setChannelsInfo();
+  async parse() {
+    this._calculateLength();
+    this._setChannelsInfo();
 
-                this.startPos = this.file.tell();
-                this.endPos = this.startPos + this.length;
+    this.startPos = this.file.tell();
+    this.endPos = this.startPos + this.length;
 
-                // We should already have the compression data, so don't need to read
-                // further into the file.
-                this.compression = this._parseCompression();
-
-                if (![2, 3].includes(this.compression)) {
-                  _context.next = 8;
-                  break;
-                }
-
-                this.file.seek(endPos);
-                return _context.abrupt('return');
-
-              case 8:
-                _context.next = 10;
-                return this._parseImageData();
-
-              case 10:
-              case 'end':
-                return _context.stop();
-            }
-          }
-        }, _callee, this);
-      }));
-
-      function parse() {
-        return _ref.apply(this, arguments);
-      }
-
-      return parse;
-    }()
-  }, {
-    key: 'startStream',
-    value: function startStream() {
-      this._processImageData();
+    // We should already have the compression data, so don't need to read
+    // further into the file.
+    this.compression = this._parseCompression();
+    if ([2, 3].includes(this.compression)) {
+      this.file.seek(endPos);
+      return;
     }
-  }, {
-    key: '_calculateLength',
-    value: function _calculateLength() {
-      if (this.header.depth === 1) {
-        this.length = (this.header.width + 7) / 8 * this.header.height;
-      } else if (this.header.depth === 16) {
-        this.length = this.header.width * this.header.height * 2;
-      } else {
-        this.length = this.header.width * this.header.height;
-      }
 
-      this.channelLength = this.length;
-      this.length *= this.header.channels;
+    await this._parseImageData();
+  }
+
+  startStream() {
+    this._processImageData();
+  }
+
+  _calculateLength() {
+    if (this.header.depth === 1) {
+      this.length = (this.header.width + 7) / 8 * this.header.height;
+    } else if (this.header.depth === 16) {
+      this.length = this.header.width * this.header.height * 2;
+    } else {
+      this.length = this.header.width * this.header.height;
     }
-  }, {
-    key: '_setChannelsInfo',
-    value: function _setChannelsInfo() {
-      switch (this.header.mode) {
-        case 1:
-          return (0, _greyscale.setGreyscaleChannels)(this);
-        case 3:
-          return (0, _rgb.setRgbChannels)(this);
-        case 4:
-          return (0, _cmyk.setCmykChannels)(this);
-      }
+
+    this.channelLength = this.length;
+    this.length *= this.header.channels;
+  }
+
+  _setChannelsInfo() {
+    switch (this.header.mode) {
+      case 1:
+        return (0, _greyscale.setGreyscaleChannels)(this);
+      case 3:
+        return (0, _rgb.setRgbChannels)(this);
+      case 4:
+        return (0, _cmyk.setCmykChannels)(this);
     }
-  }, {
-    key: '_parseCompression',
-    value: function _parseCompression() {
-      return this.file.readShort();
+  }
+
+  _parseCompression() {
+    return this.file.readShort();
+  }
+
+  async _parseImageData() {
+    switch (this.compression) {
+      case 0:
+        return (0, _raw.parseRaw)(this);
+      case 1:
+        return (0, _rle.parseRLE)(this);
+      case 2:
+      case 3:
+        return parseZip(this);
+      default:
+        this.file.seek(endPos);
     }
-  }, {
-    key: '_parseImageData',
-    value: function () {
-      var _ref2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2() {
-        return regeneratorRuntime.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                _context2.t0 = this.compression;
-                _context2.next = _context2.t0 === 0 ? 3 : _context2.t0 === 1 ? 4 : _context2.t0 === 2 ? 5 : _context2.t0 === 3 ? 5 : 6;
-                break;
+  }
 
-              case 3:
-                return _context2.abrupt('return', (0, _raw.parseRaw)(this));
-
-              case 4:
-                return _context2.abrupt('return', (0, _rle.parseRLE)(this));
-
-              case 5:
-                return _context2.abrupt('return', parseZip(this));
-
-              case 6:
-                this.file.seek(endPos);
-
-              case 7:
-              case 'end':
-                return _context2.stop();
-            }
-          }
-        }, _callee2, this);
-      }));
-
-      function _parseImageData() {
-        return _ref2.apply(this, arguments);
-      }
-
-      return _parseImageData;
-    }()
-  }, {
-    key: '_processImageData',
-    value: function _processImageData() {
-      switch (this.header.mode) {
-        case 1:
-          return (0, _greyscale.combineGreyscaleChannel)(this);
-        case 3:
-          return (0, _rgb.combineRgbChannel)(this);
-        case 4:
-          return (0, _cmyk.combineCmykChannel)(this);
-      }
-
-      // Free up this chunk of memory
-      this.channelData = null;
+  _processImageData() {
+    switch (this.header.mode) {
+      case 1:
+        return (0, _greyscale.combineGreyscaleChannel)(this);
+      case 3:
+        return (0, _rgb.combineRgbChannel)(this);
+      case 4:
+        return (0, _cmyk.combineCmykChannel)(this);
     }
-  }]);
 
-  return Image;
-}();
-
+    // Free up this chunk of memory
+    this.channelData = null;
+  }
+}
+exports.default = Image;
 Object.defineProperty(Image, 'COMPRESSIONS', {
   enumerable: true,
   writable: true,
   value: ['Raw', 'RLE', 'ZIP', 'ZIPPrediction']
 });
-exports.default = Image;
 
 /***/ }),
 /* 98 */
@@ -10516,30 +9582,25 @@ function setRgbChannels(image) {
 }
 
 function combineRgbChannel(image) {
-  var rgbChannels = image.channelsInfo.map(function (ch) {
-    return ch.id;
-  }).filter(function (ch) {
-    return ch >= -1;
-  });
+  const rgbChannels = image.channelsInfo.map(ch => ch.id).filter(ch => ch >= -1);
 
-  var r = 0,
+  let r = 0,
       g = 0,
       b = 0,
-      a = void 0;
-  var index = void 0,
-      val = void 0;
+      a;
+  let index, val;
 
-  var i = 0;
-  var iMax = image.numPixels;
+  let i = 0;
+  const iMax = image.numPixels;
   for (; i < iMax; i++) {
     a = 255;
 
-    var _index = 0;
-    var indexMax = rgbChannels.length;
-    for (; _index < indexMax; _index++) {
-      val = image.channelData[i + image.channelLength * _index];
+    let index = 0;
+    const indexMax = rgbChannels.length;
+    for (; index < indexMax; index++) {
+      val = image.channelData[i + image.channelLength * index];
 
-      switch (rgbChannels[_index]) {
+      switch (rgbChannels[index]) {
         case -1:
           a = val;break;
         case 0:
@@ -10577,8 +9638,6 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.combineCmykChannel = exports.setCmykChannels = undefined;
 
-var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
-
 var _color = __webpack_require__(/*! ../../color */ 100);
 
 function setCmykChannels(image) {
@@ -10590,19 +9649,14 @@ function setCmykChannels(image) {
 }
 
 function combineCmykChannel(image) {
-  var cmykChannels = image.channelsInfo.map(function (ch) {
-    return ch.id;
-  }).filter(function (ch) {
-    return ch >= -1;
-  });
+  const cmykChannels = image.channelsInfo.map(ch => ch.id).filter(ch => ch >= -1);
 
-  var c = 0,
+  let c = 0,
       m = 0,
       y = 0,
       k = 0,
-      a = void 0;
-  var index = void 0,
-      val = void 0;
+      a;
+  let index, val;
   for (var i = 0; i < image.numPixels; i++) {
     a = 255;
 
@@ -10623,12 +9677,7 @@ function combineCmykChannel(image) {
       }
     }
 
-    var _cmykToRgb = (0, _color.cmykToRgb)(255 - c, 255 - m, 255 - y, 255 - k),
-        _cmykToRgb2 = _slicedToArray(_cmykToRgb, 3),
-        r = _cmykToRgb2[0],
-        g = _cmykToRgb2[1],
-        b = _cmykToRgb2[2];
-
+    const [r, g, b] = (0, _color.cmykToRgb)(255 - c, 255 - m, 255 - y, 255 - k);
     image.pixelData.push(r, g, b, a);
   }
 }
@@ -10656,9 +9705,9 @@ exports.cmykToRgb = undefined;
 var _util = __webpack_require__(/*! ./util */ 9);
 
 function cmykToRgb(c, m, y, k) {
-  var r = (0, _util.clamp)(65535 - (c * (255 - k) + (k << 8)) >> 8, 0, 255);
-  var g = (0, _util.clamp)(65535 - (m * (255 - k) + (k << 8)) >> 8, 0, 255);
-  var b = (0, _util.clamp)(65535 - (y * (255 - k) + (k << 8)) >> 8, 0, 255);
+  const r = (0, _util.clamp)(65535 - (c * (255 - k) + (k << 8)) >> 8, 0, 255);
+  const g = (0, _util.clamp)(65535 - (m * (255 - k) + (k << 8)) >> 8, 0, 255);
+  const b = (0, _util.clamp)(65535 - (y * (255 - k) + (k << 8)) >> 8, 0, 255);
   return [r, g, b];
 }
 
@@ -10687,8 +9736,7 @@ function setGreyscaleChannels(image) {
 }
 
 function combineGreyscaleChannel(image) {
-  var grey = void 0,
-      alpha = void 0;
+  let grey, alpha;
   for (var i = 0; i < image.numPixels; i++) {
     grey = image.channelData[i];
 
@@ -10743,31 +9791,6 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.parseRLE = undefined;
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var parseRLE = function () {
-  var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(image) {
-    var rle;
-    return regeneratorRuntime.wrap(function _callee$(_context) {
-      while (1) {
-        switch (_context.prev = _context.next) {
-          case 0:
-            rle = new RLECompression(image);
-            return _context.abrupt('return', rle.parse());
-
-          case 2:
-          case 'end':
-            return _context.stop();
-        }
-      }
-    }, _callee, this);
-  }));
-
-  return function parseRLE(_x) {
-    return _ref.apply(this, arguments);
-  };
-}();
-
 var _fsExtra = __webpack_require__(/*! fs-extra */ 19);
 
 var _fsExtra2 = _interopRequireDefault(_fsExtra);
@@ -10778,16 +9801,14 @@ var _path2 = _interopRequireDefault(_path);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+async function parseRLE(image) {
+  const rle = new RLECompression(image);
+  return rle.parse();
+}
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+class RLECompression {
 
-function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
-
-var RLECompression = function () {
-  function RLECompression(image) {
-    _classCallCheck(this, RLECompression);
-
+  constructor(image) {
     Object.defineProperty(this, 'byteCounts', {
       enumerable: true,
       writable: true,
@@ -10807,188 +9828,78 @@ var RLECompression = function () {
     this.image = image;
   }
 
-  _createClass(RLECompression, [{
-    key: 'parse',
-    value: function () {
-      var _ref2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2() {
-        return regeneratorRuntime.wrap(function _callee2$(_context2) {
-          while (1) {
-            switch (_context2.prev = _context2.next) {
-              case 0:
-                _context2.next = 2;
-                return this._parseByteCounts();
+  async parse() {
+    await this._parseByteCounts();
+    await this._parseChannelData();
+  }
 
-              case 2:
-                _context2.next = 4;
-                return this._parseChannelData();
+  async _parseByteCounts() {
+    const { image } = this;
+    const { file } = image;
+    const channelRows = image.header.channels * image.header.height;
+    let byteCounts = [];
 
-              case 4:
-              case 'end':
-                return _context2.stop();
-            }
+    await file.readChunk(channelRows * 2);
+
+    for (var i = 0; i < channelRows; i++) {
+      byteCounts.push(file.readShort());
+    }
+    this.byteCounts = byteCounts;
+  }
+
+  async _parseChannelData() {
+    const channels = this.image.header.channels;
+    const height = this.image.header.height;
+
+    const decodePromises = [];
+
+    for (var i = 0; i < channels; i++) {
+      await this._decodeRLEChannel(i);
+    };
+  }
+
+  async _decodeRLEChannel(index) {
+    const { image } = this;
+    const { file } = image;
+    const height = image.header.height;
+    let byteCount, finish, len, val;
+
+    let bytesToRead = 0;
+    let k = 0;
+    for (; k < height; k++) {
+      bytesToRead += this.byteCounts[this.lineIndex + k];
+    }
+
+    await file.readChunk(bytesToRead);
+
+    let j = 0;
+    for (; j < height; j++) {
+      byteCount = this.byteCounts[this.lineIndex + j];
+      finish = file.tell() + byteCount;
+
+      while (file.tell() < finish) {
+        len = file.readByte();
+
+        if (len < 128) {
+          len += 1;
+          image.channelData.splice(this.chanPos, 0, ...file.read(len));
+          this.chanPos += len;
+        } else if (len > 128) {
+          len ^= 0xff;
+          len += 2;
+
+          val = file.readByte();
+
+          for (let i = 0; i < len; i++) {
+            image.channelData[this.chanPos++] = val;
           }
-        }, _callee2, this);
-      }));
-
-      function parse() {
-        return _ref2.apply(this, arguments);
+        }
       }
+    }
 
-      return parse;
-    }()
-  }, {
-    key: '_parseByteCounts',
-    value: function () {
-      var _ref3 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3() {
-        var image, file, channelRows, byteCounts, i;
-        return regeneratorRuntime.wrap(function _callee3$(_context3) {
-          while (1) {
-            switch (_context3.prev = _context3.next) {
-              case 0:
-                image = this.image;
-                file = image.file;
-                channelRows = image.header.channels * image.header.height;
-                byteCounts = [];
-                _context3.next = 6;
-                return file.readChunk(channelRows * 2);
-
-              case 6:
-
-                for (i = 0; i < channelRows; i++) {
-                  byteCounts.push(file.readShort());
-                }
-                this.byteCounts = byteCounts;
-
-              case 8:
-              case 'end':
-                return _context3.stop();
-            }
-          }
-        }, _callee3, this);
-      }));
-
-      function _parseByteCounts() {
-        return _ref3.apply(this, arguments);
-      }
-
-      return _parseByteCounts;
-    }()
-  }, {
-    key: '_parseChannelData',
-    value: function () {
-      var _ref4 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee4() {
-        var channels, height, decodePromises, i;
-        return regeneratorRuntime.wrap(function _callee4$(_context4) {
-          while (1) {
-            switch (_context4.prev = _context4.next) {
-              case 0:
-                channels = this.image.header.channels;
-                height = this.image.header.height;
-                decodePromises = [];
-                i = 0;
-
-              case 4:
-                if (!(i < channels)) {
-                  _context4.next = 10;
-                  break;
-                }
-
-                _context4.next = 7;
-                return this._decodeRLEChannel(i);
-
-              case 7:
-                i++;
-                _context4.next = 4;
-                break;
-
-              case 10:
-                ;
-
-              case 11:
-              case 'end':
-                return _context4.stop();
-            }
-          }
-        }, _callee4, this);
-      }));
-
-      function _parseChannelData() {
-        return _ref4.apply(this, arguments);
-      }
-
-      return _parseChannelData;
-    }()
-  }, {
-    key: '_decodeRLEChannel',
-    value: function () {
-      var _ref5 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee5(index) {
-        var image, file, height, byteCount, finish, len, val, bytesToRead, k, j, _image$channelData, i;
-
-        return regeneratorRuntime.wrap(function _callee5$(_context5) {
-          while (1) {
-            switch (_context5.prev = _context5.next) {
-              case 0:
-                image = this.image;
-                file = image.file;
-                height = image.header.height;
-                byteCount = void 0, finish = void 0, len = void 0, val = void 0;
-                bytesToRead = 0;
-                k = 0;
-
-                for (; k < height; k++) {
-                  bytesToRead += this.byteCounts[this.lineIndex + k];
-                }
-
-                _context5.next = 9;
-                return file.readChunk(bytesToRead);
-
-              case 9:
-                j = 0;
-
-                for (; j < height; j++) {
-                  byteCount = this.byteCounts[this.lineIndex + j];
-                  finish = file.tell() + byteCount;
-
-                  while (file.tell() < finish) {
-                    len = file.readByte();
-
-                    if (len < 128) {
-                      len += 1;
-                      (_image$channelData = image.channelData).splice.apply(_image$channelData, [this.chanPos, 0].concat(_toConsumableArray(file.read(len))));
-                      this.chanPos += len;
-                    } else if (len > 128) {
-                      len ^= 0xff;
-                      len += 2;
-
-                      val = file.readByte();
-
-                      for (i = 0; i < len; i++) {
-                        image.channelData[this.chanPos++] = val;
-                      }
-                    }
-                  }
-                }
-
-                this.lineIndex += this.image.header.height;
-
-              case 12:
-              case 'end':
-                return _context5.stop();
-            }
-          }
-        }, _callee5, this);
-      }));
-
-      function _decodeRLEChannel(_x2) {
-        return _ref5.apply(this, arguments);
-      }
-
-      return _decodeRLEChannel;
-    }()
-  }]);
-
-  return RLECompression;
-}();
+    this.lineIndex += this.image.header.height;
+  }
+}
 
 exports.parseRLE = parseRLE;
 
@@ -11008,8 +9919,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _node = __webpack_require__(/*! ../node */ 15);
 
 var _node2 = _interopRequireDefault(_node);
@@ -11024,53 +9933,37 @@ var _layer2 = _interopRequireDefault(_layer);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var Root = function (_Node) {
-  _inherits(Root, _Node);
-
-  _createClass(Root, null, [{
-    key: 'layerForPsd',
-    value: function layerForPsd(psd) {
-      var layer = {};
-      for (var i = 0; i < _node2.default.PROPERTIES.length; i++) {
-        layer[_node2.default.PROPERTIES[i]] = null;
-      }
-
-      layer.top = 0;
-      layer.left = 0;
-      layer.right = psd.header.width;
-      layer.bottom = psd.header.height;
-      return layer;
+class Root extends _node2.default {
+  static layerForPsd(psd) {
+    let layer = {};
+    for (var i = 0; i < _node2.default.PROPERTIES.length; i++) {
+      layer[_node2.default.PROPERTIES[i]] = null;
     }
-  }]);
 
-  function Root(psd) {
-    _classCallCheck(this, Root);
+    layer.top = 0;
+    layer.left = 0;
+    layer.right = psd.header.width;
+    layer.bottom = psd.header.height;
+    return layer;
+  }
 
-    var _this = _possibleConstructorReturn(this, (Root.__proto__ || Object.getPrototypeOf(Root)).call(this, Root.layerForPsd(psd)));
+  constructor(psd) {
+    super(Root.layerForPsd(psd));
 
-    Object.defineProperty(_this, 'type', {
+    Object.defineProperty(this, 'type', {
       enumerable: true,
       writable: true,
       value: "root"
     });
+    this.psd = psd;
 
+    let currentGroup = this;
+    let parseStack = [];
 
-    _this.psd = psd;
-
-    debugger;
-    var currentGroup = _this;
-    var parseStack = [];
-
-    var layer = null,
+    let layer = null,
         parent = null;
-    for (var i = 0; i < _this.psd.layerMask.layers.length; i++) {
-      layer = _this.psd.layerMask.layers[i];
+    for (var i = 0; i < this.psd.layerMask.layers.length; i++) {
+      layer = this.psd.layerMask.layers[i];
 
       if (layer.isFolder()) {
         parseStack.push(currentGroup);
@@ -11084,35 +9977,23 @@ var Root = function (_Node) {
       }
     }
 
-    _this.updateDimensions();
-    return _this;
+    this.updateDimensions();
   }
 
-  _createClass(Root, [{
-    key: 'documentDimensions',
-    value: function documentDimensions() {
-      return [this.width, this.height];
-    }
-  }, {
-    key: 'depth',
-    value: function depth() {
-      return 0;
-    }
-  }, {
-    key: 'opacity',
-    value: function opacity() {
-      return 0;
-    }
-  }, {
-    key: 'fillOpacity',
-    value: function fillOpacity() {
-      return 255;
-    }
-  }]);
+  documentDimensions() {
+    return [this.width, this.height];
+  }
 
-  return Root;
-}(_node2.default);
-
+  depth() {
+    return 0;
+  }
+  opacity() {
+    return 0;
+  }
+  fillOpacity() {
+    return 255;
+  }
+}
 exports.default = Root;
 
 /***/ }),
@@ -17963,60 +16844,35 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _node = __webpack_require__(/*! ../node */ 15);
 
 var _node2 = _interopRequireDefault(_node);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+class Group extends _node2.default {
+  constructor(...args) {
+    var _temp;
 
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var Group = function (_Node) {
-  _inherits(Group, _Node);
-
-  function Group() {
-    var _ref;
-
-    var _temp, _this, _ret;
-
-    _classCallCheck(this, Group);
-
-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-
-    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Group.__proto__ || Object.getPrototypeOf(Group)).call.apply(_ref, [this].concat(args))), _this), Object.defineProperty(_this, 'type', {
+    return _temp = super(...args), Object.defineProperty(this, 'type', {
       enumerable: true,
       writable: true,
       value: "group"
-    }), _temp), _possibleConstructorReturn(_this, _ret);
+    }), _temp;
   }
 
-  _createClass(Group, [{
-    key: 'passthruBlending',
-    value: function passthruBlending() {
-      return this.info('blendingMode') === 'passthru';
+  passthruBlending() {
+    return this.info('blendingMode') === 'passthru';
+  }
+
+  isEmpty() {
+    for (var i = 0; i < this._children.length; i++) {
+      if (!this._children[i].isEmpty()) return false;
     }
-  }, {
-    key: 'isEmpty',
-    value: function isEmpty() {
-      for (var i = 0; i < this._children.length; i++) {
-        if (!this._children[i].isEmpty()) return false;
-      }
 
-      return true;
-    }
-  }]);
-
-  return Group;
-}(_node2.default);
-
+    return true;
+  }
+}
 exports.default = Group;
 
 /***/ }),
@@ -18035,51 +16891,27 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 var _node = __webpack_require__(/*! ../node */ 15);
 
 var _node2 = _interopRequireDefault(_node);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+class Layer extends _node2.default {
+  constructor(...args) {
+    var _temp;
 
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var Layer = function (_Node) {
-  _inherits(Layer, _Node);
-
-  function Layer() {
-    var _ref;
-
-    var _temp, _this, _ret;
-
-    _classCallCheck(this, Layer);
-
-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-
-    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_ref = Layer.__proto__ || Object.getPrototypeOf(Layer)).call.apply(_ref, [this].concat(args))), _this), Object.defineProperty(_this, "type", {
+    return _temp = super(...args), Object.defineProperty(this, "type", {
       enumerable: true,
       writable: true,
       value: "layer"
-    }), _temp), _possibleConstructorReturn(_this, _ret);
+    }), _temp;
   }
 
-  _createClass(Layer, [{
-    key: "isEmpty",
-    value: function isEmpty() {
-      return this.width === 0 || this.height === 0;
-    }
-  }]);
-
-  return Layer;
-}(_node2.default);
-
+  isEmpty() {
+    return this.width === 0 || this.height === 0;
+  }
+}
 exports.default = Layer;
 
 /***/ }),
@@ -18099,22 +16931,19 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.getArtboardDetails = getArtboardDetails;
 function getArtboardDetails(psd) {
-  return psd.tree().children().filter(function (layer) {
-    return Boolean(layer.layer.adjustments.artboard);
-  }).map(function (artboard) {
-    var id = artboard.layer.adjustments.layerId.id;
-    var name = artboard.layer.adjustments.name.data;
-    var artboardRect = artboard.layer.adjustments.artboard.data.artboardRect;
+  return psd.tree().children().filter(layer => Boolean(layer.layer.adjustments.artboard)).map(artboard => {
+    const id = artboard.layer.adjustments.layerId.id;
+    const name = artboard.layer.adjustments.name.data;
+    const { artboardRect } = artboard.layer.adjustments.artboard.data;
+    const left = artboardRect.Left;
+    const top = artboardRect['Top '];
+    const right = artboardRect.Rght;
+    const bottom = artboardRect.Btom;
 
-    var left = artboardRect.Left;
-    var top = artboardRect['Top '];
-    var right = artboardRect.Rght;
-    var bottom = artboardRect.Btom;
+    const width = right - left;
+    const height = bottom - top;
 
-    var width = right - left;
-    var height = bottom - top;
-
-    return { id: id, name: name, width: width, height: height, top: top, left: left };
+    return { id, name, width, height, top, left };
   });
 }
 

@@ -51,7 +51,6 @@ export default class File {
   }
 
   async readChunk(length, start = this.tell()) {
-    console.log('LOADING CHUNK', start, length);
     this.chunkPos = 0;
     const buffer = Buffer.alloc(length);
     const result = await fs.read(this.fd, buffer, 0, length, start);

@@ -24,7 +24,6 @@ export default class Root extends Node {
 
     this.psd = psd;
 
-    debugger;
     let currentGroup = this;
     let parseStack = [];
 
