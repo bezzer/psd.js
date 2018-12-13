@@ -101,7 +101,7 @@ export default class File {
   readUnicodeString(length = null) {
     if (!length) length = this.readInt();
     return iconv
-      .decode(new Buffer(this.read(length * 2)), 'utf-16be')
+      .decode(Buffer.from(this.read(length * 2)), 'utf-16be')
       .replace(/\u0000/g, '');
   }
 
