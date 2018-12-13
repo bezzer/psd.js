@@ -2035,7 +2035,7 @@ class File {
 
   readUnicodeString(length = null) {
     if (!length) length = this.readInt();
-    return _iconvLite2.default.decode(new Buffer(this.read(length * 2)), 'utf-16be').replace(/\u0000/g, '');
+    return _iconvLite2.default.decode(Buffer.from(this.read(length * 2)), 'utf-16be').replace(/\u0000/g, '');
   }
 
   readByte() {
@@ -8119,8 +8119,8 @@ class Layer {
     (0, _position_channels2.default)(this);
     (0, _blend_modes2.default)(this);
 
-    const extraLen = this.file.readInt();
-    this.layerEnd = this.file.tell() + extraLen;
+    this.layerSize = this.file.readInt();
+    this.layerEnd = this.file.tell() + this.layerSize;
 
     (0, _mask_data2.default)(this);
     (0, _blending_ranges2.default)(this);
