@@ -38,8 +38,8 @@ export default class Layer {
     parsePositionAndChannels(this);
     parseBlendModes(this);
 
-    const extraLen = this.file.readInt();
-    this.layerEnd = this.file.tell() + extraLen;
+    this.layerSize = this.file.readInt();
+    this.layerEnd = this.file.tell() + this.layerSize;
 
     parseMaskData(this);
     parseBlendingRanges(this);
